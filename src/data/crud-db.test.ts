@@ -18,7 +18,10 @@ describe("CrudDb", () => {
     const db = new CrudDb(name);
     await db.open();
 
-    expect(db.tables.map((t) => t.name)).not.toContain("events");
+    // `db.tables` é o cache em memória do Dexie; o que decide se a store
+    // ainda existe no IndexedDB é o `backendDB()` — checar direto nele prova
+    // que o `events: null` do upgrade realmente removeu a store física.
+    expect(Array.from(db.backendDB().objectStoreNames)).not.toContain("events");
     expect(await db.meta.get("deviceId")).toEqual({ key: "deviceId", value: "D1" });
     expect(await db.meta.get("localUserId")).toBeUndefined();
     await db.delete();
@@ -27,7 +30,10 @@ describe("CrudDb", () => {
   it("banco novo abre com as cinco tabelas vazias", async () => {
     const db = new CrudDb(`homefinance-novo-${Date.now()}`);
     expect(await db.users.count()).toBe(0);
+    expect(await db.categories.count()).toBe(0);
+    expect(await db.paymentMethods.count()).toBe(0);
     expect(await db.transactions.count()).toBe(0);
+    expect(await db.recurrences.count()).toBe(0);
     await db.delete();
   });
 });
