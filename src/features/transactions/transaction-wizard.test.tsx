@@ -1,6 +1,9 @@
 import { cleanup, fireEvent, render, screen } from "@testing-library/preact";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import type { Category, PaymentMethod, Transaction } from "../../domain/projections/apply";
+import type { Category } from "../../domain/model/category";
+import type { PaymentMethod } from "../../domain/model/payment-method";
+import { ALIVE } from "../../domain/model/row.fake";
+import type { Transaction } from "../../domain/model/transaction";
 import { TransactionWizard } from "./transaction-wizard";
 
 afterEach(cleanup);
@@ -309,7 +312,7 @@ describe("limpeza do cashback", () => {
   it("trocar para dinheiro emite cashbackMinor null", () => {
     // O teste mais importante da fatia 3, preservado aqui. Esconder sem limpar
     // deixaria dado sujo permanente: invisivel na tela, presente no export,
-    // imortal no log append-only.
+    // replicado pelo sync.
     const { onSubmit } = montar({ editing: COM_CASHBACK });
     fireEvent.click(screen.getByRole("button", { name: /Pagamento/ }));
     expect((screen.getByLabelText(/cashback/i) as HTMLInputElement).value).toBe("5,00");

@@ -1,23 +1,29 @@
 import { cleanup, fireEvent, render, screen } from "@testing-library/preact";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { type AppState, EMPTY_APP_STATE } from "../../domain/projections/apply";
+import { type AppState, EMPTY_APP_STATE } from "../../domain/model/app-state";
+import type { Category } from "../../domain/model/category";
+import type { PaymentMethod } from "../../domain/model/payment-method";
+import { ALIVE } from "../../domain/model/row.fake";
 import { RegistryPage } from "./registry-page";
 import type { RegistryStore } from "./store";
 
 afterEach(cleanup);
 
+/** Devolve uma linha qualquer: a tela não lê o retorno, só precisa do tipo. */
 function fakeStore(): RegistryStore {
+  const category = async (): Promise<Category> => CATEGORIA;
+  const method = async (): Promise<PaymentMethod> => FORMA;
   return {
-    addCategory: vi.fn(async () => {}),
-    editCategory: vi.fn(async () => {}),
-    removeCategory: vi.fn(async () => {}),
-    addPaymentMethod: vi.fn(async () => {}),
-    editPaymentMethod: vi.fn(async () => {}),
-    removePaymentMethod: vi.fn(async () => {}),
+    addCategory: vi.fn(category),
+    editCategory: vi.fn(category),
+    removeCategory: vi.fn(category),
+    addPaymentMethod: vi.fn(method),
+    editPaymentMethod: vi.fn(method),
+    removePaymentMethod: vi.fn(method),
   };
 }
 
-const CATEGORIA = {
+const CATEGORIA: Category = {
   id: "cat-1",
   name: "Mercado",
   icon: "utensils",
@@ -26,7 +32,7 @@ const CATEGORIA = {
   ...ALIVE,
 };
 
-const RECEITA = {
+const RECEITA: Category = {
   id: "cat-2",
   name: "Salário",
   icon: "banknote",
@@ -35,12 +41,21 @@ const RECEITA = {
   ...ALIVE,
 };
 
-const AMBAS = {
+const AMBAS: Category = {
   id: "cat-3",
   name: "Investimentos",
   icon: "chart",
   color: "sky",
   kind: "both",
+  ...ALIVE,
+};
+
+const FORMA: PaymentMethod = {
+  id: "pm-1",
+  name: "Nubank",
+  icon: "credit-card",
+  color: "violet",
+  kind: "credit",
   ...ALIVE,
 };
 
@@ -126,9 +141,8 @@ describe("RegistryPage", () => {
     expect(store.addCategory).not.toHaveBeenCalled();
   });
 
-  it("editar emite apenas o patch, nao o agregado inteiro", () => {
-    // Emitir tudo num update faria o LWW por campo perder edicoes concorrentes
-    // sem nenhum sintoma visivel.
+  it("editar manda o draft completo, nao um patch", () => {
+    // Com LWW por linha nao existe patch: a linha inteira e gravada.
     const store = fakeStore();
     render(
       <RegistryPage
@@ -143,10 +157,17 @@ describe("RegistryPage", () => {
     preencherNome("Supermercado");
     salvar();
 
-    expect(store.editCategory).toHaveBeenCalledWith("cat-1", { name: "Supermercado" });
+    expect(store.editCategory).toHaveBeenCalledWith("cat-1", {
+      name: "Supermercado",
+      icon: "utensils",
+      color: "emerald",
+      kind: "expense",
+    });
   });
 
-  it("editar sem mudar nada emite patch vazio, que a store descarta", () => {
+  it("editar sem mudar nada manda o mesmo draft e fecha o modal", () => {
+    // Decidir se houve mudança não é da tela: o repositório já não grava
+    // quando o draft é igual à linha. A tela só repassa e fecha.
     const store = fakeStore();
     render(
       <RegistryPage
@@ -160,7 +181,37 @@ describe("RegistryPage", () => {
     abrirEdicao();
     salvar();
 
-    expect(store.editCategory).toHaveBeenCalledWith("cat-1", {});
+    expect(store.editCategory).toHaveBeenCalledWith("cat-1", {
+      name: "Mercado",
+      icon: "utensils",
+      color: "emerald",
+      kind: "expense",
+    });
+    expect(screen.queryByRole("dialog")).toBeNull();
+  });
+
+  it("falha de escrita fecha o modal sem virar rejeicao solta", async () => {
+    // A mensagem aparece pelo `session.error`, no App; a tela só não pode
+    // deixar a promise rejeitada sem tratamento (o Vitest acusaria).
+    const store = fakeStore();
+    store.editCategory = vi.fn(async () => {
+      throw new Error("disco cheio");
+    });
+    render(
+      <RegistryPage
+        entity="category"
+        state={stateWith({ categories: { "cat-1": CATEGORIA } })}
+        store={store}
+        onBack={vi.fn()}
+      />,
+    );
+
+    abrirEdicao();
+    salvar();
+    await Promise.resolve();
+
+    expect(store.editCategory).toHaveBeenCalled();
+    expect(screen.queryByRole("dialog")).toBeNull();
   });
 
   it("excluir chama a store com o id", () => {
@@ -186,7 +237,7 @@ describe("RegistryPage", () => {
         entity="paymentMethod"
         state={stateWith({
           categories: { "cat-1": CATEGORIA },
-          paymentMethods: { "pm-1": { ...CATEGORIA, id: "pm-1", name: "Nubank", kind: "credit" } },
+          paymentMethods: { "pm-1": FORMA },
         })}
         store={store}
         onBack={vi.fn()}

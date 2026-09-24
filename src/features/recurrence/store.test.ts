@@ -54,6 +54,28 @@ function draftOf(row: Recurrence): RecurrenceDraft {
   };
 }
 
+/**
+ * A série que `createSeries(DRAFT, MENSAL, ...)` gravaria, montada à mão para
+ * os testes que precisam dela no banco **sem** materializar nada ainda.
+ */
+function mensalDraft(): RecurrenceDraft {
+  return {
+    kind: DRAFT.kind,
+    description: DRAFT.description,
+    amountMinor: DRAFT.amountMinor,
+    currency: "BRL",
+    categoryId: DRAFT.categoryId,
+    paymentMethodId: DRAFT.paymentMethodId,
+    cashbackMinor: DRAFT.cashbackMinor,
+    frequency: MENSAL.frequency,
+    scheduleType: MENSAL.scheduleType,
+    scheduleN: MENSAL.scheduleN,
+    startOn: DRAFT.occurredOn,
+    endOn: MENSAL.endOn,
+    active: true,
+  };
+}
+
 beforeEach(async () => {
   db = openTestDb();
   session = createSession(testSessionDeps(db));
@@ -139,21 +161,7 @@ describe("createRecurrenceStore", () => {
     // Sem `init()`: `clock()` lança "Sessão não inicializada" dentro de
     // `materializeDue`, que precisa preencher `error` como qualquer outra
     // falha de escrita — não só relançar.
-    const seriesDraft: RecurrenceDraft = {
-      kind: DRAFT.kind,
-      description: DRAFT.description,
-      amountMinor: DRAFT.amountMinor,
-      currency: "BRL",
-      categoryId: DRAFT.categoryId,
-      paymentMethodId: DRAFT.paymentMethodId,
-      cashbackMinor: DRAFT.cashbackMinor,
-      frequency: MENSAL.frequency,
-      scheduleType: MENSAL.scheduleType,
-      scheduleN: MENSAL.scheduleN,
-      startOn: DRAFT.occurredOn,
-      endOn: MENSAL.endOn,
-      active: true,
-    };
+    const seriesDraft = mensalDraft();
     // Precisa de uma série pendente no `state` para `materializeDue` chegar
     // até o `clock()` — sem plano, a função retorna cedo.
     const withSeries = await session.mutate("recurrences", (repo) => repo.create(seriesDraft));
@@ -170,21 +178,7 @@ describe("createRecurrenceStore", () => {
   });
 
   it("sessão desatualizada não revive ocorrência apagada por outra sessão (I1)", async () => {
-    const seriesDraft: RecurrenceDraft = {
-      kind: DRAFT.kind,
-      description: DRAFT.description,
-      amountMinor: DRAFT.amountMinor,
-      currency: "BRL",
-      categoryId: DRAFT.categoryId,
-      paymentMethodId: DRAFT.paymentMethodId,
-      cashbackMinor: DRAFT.cashbackMinor,
-      frequency: MENSAL.frequency,
-      scheduleType: MENSAL.scheduleType,
-      scheduleN: MENSAL.scheduleN,
-      startOn: DRAFT.occurredOn,
-      endOn: MENSAL.endOn,
-      active: true,
-    };
+    const seriesDraft = mensalDraft();
     // A série existe, mas ainda sem nenhuma ocorrência materializada.
     await session.mutate("recurrences", (repo) => repo.create(seriesDraft));
 

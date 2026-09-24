@@ -1,11 +1,9 @@
 import { cleanup, render, screen } from "@testing-library/preact";
 import { afterEach, describe, expect, it } from "vitest";
-import {
-  type AppState,
-  type Category,
-  EMPTY_APP_STATE,
-  type Transaction,
-} from "../../domain/projections/apply";
+import { type AppState, EMPTY_APP_STATE } from "../../domain/model/app-state";
+import type { Category } from "../../domain/model/category";
+import { ALIVE } from "../../domain/model/row.fake";
+import type { Transaction } from "../../domain/model/transaction";
 import { DashboardPage } from "./dashboard-page";
 
 afterEach(cleanup);

@@ -1,6 +1,8 @@
 import { cleanup, fireEvent, render, screen, within } from "@testing-library/preact";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import type { Category } from "../../domain/projections/apply";
+import type { Category } from "../../domain/model/category";
+import { ALIVE } from "../../domain/model/row.fake";
+import type { ColorToken } from "../../domain/model/tokens";
 import { RegistryList } from "./registry-list";
 
 afterEach(cleanup);
@@ -32,7 +34,9 @@ describe("RegistryList", () => {
     render(
       <RegistryList
         {...NOOP}
-        items={[categoria({ id: "a", icon: "futuro", color: "chartreuse" })]}
+        // O cast simula uma linha vinda do sync com um token que esta versão
+        // não conhece: o tipo proíbe, mas o dado em runtime não é obrigado.
+        items={[categoria({ id: "a", icon: "futuro", color: "chartreuse" as ColorToken })]}
       />,
     );
 

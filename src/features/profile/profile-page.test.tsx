@@ -1,6 +1,7 @@
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/preact";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import type { User } from "../../domain/projections/apply";
+import { ALIVE } from "../../domain/model/row.fake";
+import type { User, UserDraft } from "../../domain/model/user";
 import { ProfilePage } from "./profile-page";
 import type { ProfileStore } from "./store";
 
@@ -19,7 +20,12 @@ const ARQUIVO = new File(["x"], "eu.jpg", { type: "image/jpeg" });
 
 function fakeStore(): ProfileStore {
   return {
-    editProfile: vi.fn(async () => {}),
+    editProfile: vi.fn(
+      async (_id: string, draft: UserDraft): Promise<User> => ({
+        ...PERFIL,
+        ...draft,
+      }),
+    ),
   };
 }
 
@@ -54,7 +60,7 @@ describe("ProfilePage", () => {
     expect((screen.getByRole("radio", { name: "teal" }) as HTMLInputElement).checked).toBe(true);
   });
 
-  it("salva so o patch do que mudou", async () => {
+  it("salva o draft completo, nao um patch", async () => {
     const { store, onBack } = montar();
 
     fireEvent.input(screen.getByLabelText(/seu nome/i), { target: { value: "Luís" } });
@@ -65,18 +71,37 @@ describe("ProfilePage", () => {
       expect(store.editProfile).toHaveBeenCalledWith("cat-user-1", {
         name: "Luís",
         color: "rose",
+        avatar: null,
       }),
     );
     expect(onBack).toHaveBeenCalled();
   });
 
-  it("sem mudanca nao chama a store e volta", async () => {
+  it("sem mudanca ainda volta; quem ignora a escrita e o repositorio", async () => {
     const { store, onBack } = montar();
 
     fireEvent.click(screen.getByRole("button", { name: /salvar/i }));
 
     await waitFor(() => expect(onBack).toHaveBeenCalled());
-    expect(store.editProfile).not.toHaveBeenCalled();
+    expect(store.editProfile).toHaveBeenCalledWith("cat-user-1", {
+      name: "Luiz",
+      color: "teal",
+      avatar: null,
+    });
+  });
+
+  it("falha ao salvar mostra o erro e fica na tela", async () => {
+    const store: ProfileStore = {
+      editProfile: vi.fn(async (): Promise<User> => {
+        throw new Error("disco cheio");
+      }),
+    };
+    const { onBack } = montar({ store });
+
+    fireEvent.click(screen.getByRole("button", { name: /salvar/i }));
+
+    expect((await screen.findByRole("alert")).textContent).toMatch(/disco cheio/);
+    expect(onBack).not.toHaveBeenCalled();
   });
 
   it("nome vazio bloqueia e nao grava", async () => {
@@ -102,8 +127,14 @@ describe("ProfilePage", () => {
     fireEvent.click(screen.getByRole("button", { name: /remover foto/i }));
     fireEvent.click(screen.getByRole("button", { name: /salvar/i }));
 
-    // Removeu o que nunca foi salvo: avatar continua null e o patch nao inclui foto.
-    await waitFor(() => expect(store.editProfile).not.toHaveBeenCalled());
+    // Removeu o que nunca foi salvo: o draft sai com avatar null, igual ao perfil.
+    await waitFor(() =>
+      expect(store.editProfile).toHaveBeenCalledWith("cat-user-1", {
+        name: "Luiz",
+        color: "teal",
+        avatar: null,
+      }),
+    );
   });
 
   it("grava remocao de foto existente como avatar null", async () => {
@@ -115,7 +146,11 @@ describe("ProfilePage", () => {
     fireEvent.click(screen.getByRole("button", { name: /salvar/i }));
 
     await waitFor(() =>
-      expect(store.editProfile).toHaveBeenCalledWith("cat-user-1", { avatar: null }),
+      expect(store.editProfile).toHaveBeenCalledWith("cat-user-1", {
+        name: "Luiz",
+        color: "teal",
+        avatar: null,
+      }),
     );
   });
 

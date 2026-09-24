@@ -43,6 +43,45 @@ describe("createSession", () => {
     expect(segunda.localUserId.value).toBe("U1");
   });
 
+  it("reabrir reusa o deviceId gravado no primeiro boot", async () => {
+    const primeira = createSession(testSessionDeps(db));
+    await primeira.init();
+    const segunda = createSession(testSessionDeps(db));
+    await segunda.init();
+
+    expect(segunda.clock().deviceId).toBe(primeira.clock().deviceId);
+  });
+
+  it("reabrir semeia o relógio com o maior HLC gravado, sem regredir", async () => {
+    // `testSessionDeps` recomeça do mesmo instante a cada sessão: sem a
+    // semente, a segunda sessão carimbaria um `updatedAt` menor que o da
+    // linha que a primeira já gravou, e perderia todo LWW contra ela.
+    const primeira = createSession(testSessionDeps(db));
+    await primeira.init();
+    let antiga = await primeira.mutate("categories", (repo) => repo.create(MERCADO));
+    for (let i = 0; i < 5; i += 1) {
+      antiga = await primeira.mutate("categories", (repo) =>
+        repo.update(antiga.id, { ...MERCADO, name: `Mercado ${i}` }),
+      );
+    }
+
+    const segunda = createSession(testSessionDeps(db));
+    await segunda.init();
+    const nova = await segunda.mutate("categories", (repo) => repo.create(MERCADO));
+
+    expect(nova.updatedAt > antiga.updatedAt).toBe(true);
+  });
+
+  it("entra em erro, com a mensagem, quando o banco não abre", async () => {
+    vi.spyOn(db.meta, "get").mockRejectedValueOnce(new Error("IndexedDB indisponível"));
+    const session = createSession(testSessionDeps(db));
+
+    await session.init();
+
+    expect(session.status.value).toBe("error");
+    expect(session.error.value).toBe("IndexedDB indisponível");
+  });
+
   it("mutate grava e publica a linha", async () => {
     const session = createSession(testSessionDeps(db));
     await session.init();

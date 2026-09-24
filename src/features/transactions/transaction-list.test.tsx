@@ -1,6 +1,8 @@
 import { act, cleanup, fireEvent, render, screen } from "@testing-library/preact";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { type AppState, EMPTY_APP_STATE, type Transaction } from "../../domain/projections/apply";
+import { type AppState, EMPTY_APP_STATE } from "../../domain/model/app-state";
+import { ALIVE, DELETED_AT } from "../../domain/model/row.fake";
+import type { Transaction } from "../../domain/model/transaction";
 import { HOLD_MS, TransactionList } from "./transaction-list";
 
 afterEach(cleanup);
