@@ -4,7 +4,7 @@ import { openTestDb, testSessionDeps } from "../../data/test-db.fake";
 import { isAlive } from "../../domain/model/base";
 import type { Recurrence, RecurrenceDraft, RecurrenceRule } from "../../domain/model/recurrence";
 import type { TransactionDraft } from "../../domain/model/transaction";
-import { type Session, createSession } from "../session/session";
+import { createSession, type Session } from "../session/session";
 import { createRecurrenceStore, type RecurrenceStore } from "./store";
 
 const DRAFT: TransactionDraft = {

@@ -1,12 +1,16 @@
 import { useState } from "preact/hooks";
-import type {
-  CategoryDraft,
-  CategoryKind,
-  PaymentKind,
-  PaymentMethodDraft,
-} from "../../domain/events/reference";
-import type { CategoryRecord, PaymentMethodRecord } from "../../domain/projections/apply";
-import { CATEGORY_KINDS, PAYMENT_KINDS } from "../../domain/projections/entities";
+import {
+  CATEGORY_KINDS,
+  type Category,
+  type CategoryDraft,
+  type CategoryKind,
+} from "../../domain/model/category";
+import {
+  PAYMENT_KINDS,
+  type PaymentKind,
+  type PaymentMethod,
+  type PaymentMethodDraft,
+} from "../../domain/model/payment-method";
 import { COLOR_TOKENS, cssVarForToken } from "../colors/color-token";
 import { Icon } from "../icons/icon";
 import { ICON_KEYS } from "../icons/icon-set";
@@ -17,7 +21,7 @@ export type RegistryEntity = "category" | "paymentMethod";
 export interface RegistryWizardProps {
   entity: RegistryEntity;
   /** Registro em edição, ou null para criação. Montado com `key` pela página. */
-  editing: CategoryRecord | PaymentMethodRecord | null;
+  editing: Category | PaymentMethod | null;
   /** Nomes já usados, para o aviso de duplicata. Inclui o próprio em edição. */
   existingNames: string[];
   onSubmit: (draft: CategoryDraft | PaymentMethodDraft) => void;

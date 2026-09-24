@@ -82,13 +82,23 @@ export interface Session {
    * Insere só as linhas cujo id ainda não existe no banco — nunca sobrescreve.
    * Para identidade determinística (materialização): o state em memória pode
    * estar velho (outra aba, sync), então a checagem é feita dentro da transação.
+   *
+   * Ids em `rows` precisam ser únicos: repetido derruba o lote com
+   * ConstraintError.
    */
   insertMissing: <K extends TableName>(table: K, rows: RowOf<K>[]) => Promise<RowOf<K>[]>;
 }
 
-function describeError(cause: unknown): string {
+/** Mensagem legível de uma falha qualquer, para `error` e para as telas. */
+export function describeError(cause: unknown): string {
   return cause instanceof Error ? cause.message : String(cause);
 }
+
+/**
+ * Para chamadas fire-and-forget da UI. A falha já está em `session.error`, que
+ * a tela mostra; isto só impede a rejeição de virar "unhandled".
+ */
+export function ignoreHandled(): void {}
 
 function toRecord<T extends BaseRow>(rows: readonly T[]): Record<Ulid, T> {
   return Object.fromEntries(rows.map((row) => [row.id, row]));

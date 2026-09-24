@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { HomeFinanceDb } from "../../data/db";
 import { openTestDb, testSessionDeps } from "../../data/test-db.fake";
 import { compareHlc } from "../../domain/clock/hlc";
-import { type Session, createSession } from "../session/session";
+import { createSession, type Session } from "../session/session";
 import { createRegistryStore, type RegistryStore } from "./store";
 
 const MERCADO = { name: "Mercado", icon: "utensils", color: "emerald", kind: "expense" } as const;

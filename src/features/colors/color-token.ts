@@ -1,4 +1,4 @@
-import { COLOR_TOKENS, NEUTRAL_TOKEN } from "../../domain/projections/entities";
+import { COLOR_TOKENS, NEUTRAL_TOKEN } from "../../domain/model/tokens";
 
 export { COLOR_TOKENS };
 

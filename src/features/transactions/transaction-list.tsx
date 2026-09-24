@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from "preact/hooks";
 import type { Ulid } from "../../domain/ids/ulid";
+import type { AppState } from "../../domain/model/app-state";
+import type { Transaction } from "../../domain/model/transaction";
 import { formatBRL } from "../../domain/money/money";
-import type { ProjectionState, TransactionRecord } from "../../domain/projections/apply";
 import { dayLabel } from "../../domain/projections/periods";
 import {
   type DayGroup,
@@ -17,12 +18,12 @@ import { EmptyHero } from "../illustrations/empty-hero";
 
 export interface TransactionListProps {
   /** Já filtrados e ordenados por `listTransactions`. */
-  items: TransactionRecord[];
+  items: Transaction[];
   /** Para resolver categoria, forma de pagamento e autor, inclusive os apagados. */
-  state: ProjectionState;
+  state: AppState;
   /** Data de hoje em 'YYYY-MM-DD', para os rótulos "Hoje" e "Ontem". */
   today: string;
-  onEdit: (record: TransactionRecord) => void;
+  onEdit: (record: Transaction) => void;
   onDelete: (entityId: Ulid) => void;
 }
 
@@ -33,11 +34,11 @@ export interface TransactionListProps {
  * sabe do lançamento sem categoria, e são os mesmos dois ícones que a fila de
  * ações rápidas já usa para criar cada tipo.
  */
-function fallbackIcon(kind: TransactionRecord["kind"]): string {
+function fallbackIcon(kind: Transaction["kind"]): string {
   return kind === "income" ? "banknote" : "receipt";
 }
 
-function metadata(state: ProjectionState, item: TransactionRecord): string {
+function metadata(state: AppState, item: Transaction): string {
   return [
     item.categoryId !== null ? resolveCategoryName(state, item.categoryId) : null,
     item.paymentMethodId !== null ? resolvePaymentMethodName(state, item.paymentMethodId) : null,
@@ -47,7 +48,7 @@ function metadata(state: ProjectionState, item: TransactionRecord): string {
     .join(" · ");
 }
 
-function signed(item: TransactionRecord): string {
+function signed(item: Transaction): string {
   return `${item.kind === "income" ? "+" : "-"}${formatBRL(item.amountMinor)}`;
 }
 
@@ -184,9 +185,9 @@ function Row({
   onEdit,
   onDelete,
 }: {
-  item: TransactionRecord;
-  state: ProjectionState;
-  onEdit: (record: TransactionRecord) => void;
+  item: Transaction;
+  state: AppState;
+  onEdit: (record: Transaction) => void;
   onDelete: (entityId: Ulid) => void;
 }) {
   const category = findCategory(state, item.categoryId);

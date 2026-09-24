@@ -1,4 +1,4 @@
-import type { UserRecord } from "../../domain/projections/apply";
+import type { User } from "../../domain/model/user";
 import { BrandMark } from "../brand/brand-mark";
 import { Icon } from "../icons/icon";
 import { Avatar } from "../profile/avatar-view";
@@ -10,7 +10,7 @@ export interface SettingsPageProps {
   categoryCount: number;
   paymentMethodCount: number;
   /** Perfil local, ou null enquanto ele não existe. */
-  profile: UserRecord | null;
+  profile: User | null;
   onOpen: (section: SettingsSection) => void;
   onReset: () => void;
 }

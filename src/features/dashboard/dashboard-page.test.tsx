@@ -1,10 +1,10 @@
 import { cleanup, render, screen } from "@testing-library/preact";
 import { afterEach, describe, expect, it } from "vitest";
 import {
-  type CategoryRecord,
-  EMPTY_STATE,
-  type ProjectionState,
-  type TransactionRecord,
+  type AppState,
+  type Category,
+  EMPTY_APP_STATE,
+  type Transaction,
 } from "../../domain/projections/apply";
 import { DashboardPage } from "./dashboard-page";
 
@@ -12,7 +12,7 @@ afterEach(cleanup);
 
 const TODAY = "2026-08-10";
 
-function record(overrides: Partial<TransactionRecord> & { id: string }): TransactionRecord {
+function record(overrides: Partial<Transaction> & { id: string }): Transaction {
   return {
     kind: "expense",
     description: "Mercado",
@@ -25,16 +25,14 @@ function record(overrides: Partial<TransactionRecord> & { id: string }): Transac
     userId: null,
     recurrenceId: null,
     occurrenceKey: null,
-    deleted: false,
-    materialized: true,
-    fieldHlc: {},
+    ...ALIVE,
     ...overrides,
   };
 }
 
-function stateWith(categories: CategoryRecord[] = []): ProjectionState {
+function stateWith(categories: Category[] = []): AppState {
   return {
-    ...EMPTY_STATE,
+    ...EMPTY_APP_STATE,
     categories: Object.fromEntries(categories.map((item) => [item.id, item])),
   };
 }

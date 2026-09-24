@@ -1,44 +1,39 @@
 import { useState } from "preact/hooks";
+import type { Ulid } from "../../domain/ids/ulid";
+import type { Category } from "../../domain/model/category";
+import type { PaymentMethod } from "../../domain/model/payment-method";
 import {
   FREQUENCY_LABELS,
   RECURRENCE_FREQUENCIES,
   type RecurrenceFrequency,
+  type RecurrenceRule,
   SCHEDULE_TYPE_LABELS,
   SCHEDULE_TYPES,
   type ScheduleType,
-} from "../../domain/events/recurrence";
-import type { TransactionDraft, TransactionKind } from "../../domain/events/transaction";
-import type { Ulid } from "../../domain/ids/ulid";
-import { maskDigits, minorOf, onlyDigits } from "../../domain/money/mask";
+} from "../../domain/model/recurrence";
 import type {
-  CategoryRecord,
-  PaymentMethodRecord,
-  TransactionRecord,
-} from "../../domain/projections/apply";
+  Transaction,
+  TransactionDraft,
+  TransactionKind,
+} from "../../domain/model/transaction";
+import { maskDigits, minorOf, onlyDigits } from "../../domain/money/mask";
 import { offersCashback } from "../../domain/transactions/cashback";
 import { EntityPicker } from "../registry/entity-picker";
 import { DateField } from "../ui/date-field";
 import { FIELD, FIELD_BOX, LABEL } from "../ui/field";
 import { StepIndicator } from "./step-indicator";
 
-/** Regra de série pedida na criação. Null = lançamento avulso. */
-export interface RecurrenceInput {
-  frequency: RecurrenceFrequency;
-  scheduleType: ScheduleType;
-  scheduleN: number;
-  endOn: string | null;
-}
-
 export interface TransactionWizardProps {
   /** Registro em edição, ou null para criação. Montado com `key` pelo App. */
-  editing: TransactionRecord | null;
-  onSubmit: (draft: TransactionDraft, recurrence: RecurrenceInput | null) => void;
+  editing: Transaction | null;
+  /** `recurrence` é a regra de série pedida na criação; null = lançamento avulso. */
+  onSubmit: (draft: TransactionDraft, recurrence: RecurrenceRule | null) => void;
   onCancel: () => void;
   today: string;
   /** Tipo pré-selecionado na criação. Ignorado na edição, onde o registro manda. */
   initialKind?: TransactionKind;
-  categories: CategoryRecord[];
-  paymentMethods: PaymentMethodRecord[];
+  categories: Category[];
+  paymentMethods: PaymentMethod[];
 }
 
 /**
@@ -208,7 +203,7 @@ export function TransactionWizard({
     setStep(index);
   }
 
-  function recurrenceInput(): RecurrenceInput {
+  function recurrenceInput(): RecurrenceRule {
     const n = Math.min(31, Math.max(1, Math.trunc(scheduleN) || 1));
     return {
       frequency,

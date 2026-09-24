@@ -1,5 +1,6 @@
+import type { AppState } from "../../domain/model/app-state";
+import type { Transaction } from "../../domain/model/transaction";
 import { formatBRL } from "../../domain/money/money";
-import type { ProjectionState, TransactionRecord } from "../../domain/projections/apply";
 import {
   expenseByCategory,
   filterByMonth,
@@ -13,9 +14,9 @@ import { DonutChart } from "./donut-chart";
 
 export interface DashboardPageProps {
   /** Já filtrados por `listTransactions`: o App calcula uma vez e reusa. */
-  items: TransactionRecord[];
+  items: Transaction[];
   /** Necessário para resolver nome e cor das categorias das fatias. */
-  state: ProjectionState;
+  state: AppState;
   /** Hoje em 'YYYY-MM-DD'. Vem de fora pelo mesmo motivo que no App. */
   today: string;
 }

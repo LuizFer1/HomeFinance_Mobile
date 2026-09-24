@@ -1,8 +1,9 @@
 import { useState } from "preact/hooks";
-import type { TransactionKind } from "../../domain/events/transaction";
 import type { Ulid } from "../../domain/ids/ulid";
-import type { ProjectionState } from "../../domain/projections/apply";
+import type { AppState } from "../../domain/model/app-state";
+import type { TransactionKind } from "../../domain/model/transaction";
 import { listCategoriesFor, listPaymentMethods } from "../../domain/projections/selectors";
+import { ignoreHandled } from "../session/session";
 import { REGISTRY_COPY, RegistryFormModal, type RegistryRecord } from "./registry-form-modal";
 import { RegistryList } from "./registry-list";
 import type { RegistryEntity } from "./registry-wizard";
@@ -10,7 +11,7 @@ import type { RegistryStore } from "./store";
 
 export interface RegistryPageProps {
   entity: RegistryEntity;
-  state: ProjectionState;
+  state: AppState;
   store: RegistryStore;
   onBack: () => void;
 }
@@ -62,8 +63,9 @@ export function RegistryPage({ entity, state, store, onBack }: RegistryPageProps
 
   function handleDelete(id: Ulid) {
     if (editing?.id === id) closeModal();
-    if (isPayment) void store.removePaymentMethod(id);
-    else void store.removeCategory(id);
+    // A falha aparece pelo `session.error`; aqui só não deixa a rejeição solta.
+    if (isPayment) void store.removePaymentMethod(id).catch(ignoreHandled);
+    else void store.removeCategory(id).catch(ignoreHandled);
   }
 
   return (

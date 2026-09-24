@@ -1,14 +1,14 @@
 import { useState } from "preact/hooks";
-import type { ColorToken } from "../../domain/events/reference";
-import { diffUser, type UserDraft } from "../../domain/events/user";
-import type { UserRecord } from "../../domain/projections/apply";
+import type { ColorToken } from "../../domain/model/tokens";
+import type { User, UserDraft } from "../../domain/model/user";
 import { COLOR_TOKENS, cssVarForToken } from "../colors/color-token";
+import { describeError } from "../session/session";
 import { FIELD, LABEL } from "../ui/field";
 import { Avatar } from "./avatar-view";
 import type { ProfileStore } from "./store";
 
 export interface ProfilePageProps {
-  profile: UserRecord;
+  profile: User;
   store: ProfileStore;
   /** Pipeline da foto, injetado: `happy-dom` não tem canvas. */
   processFile: (file: Blob) => Promise<string>;
@@ -20,15 +20,11 @@ const SWATCH =
   "hf-press flex size-10 cursor-pointer items-center justify-center rounded-full " +
   "transition-transform duration-150 has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-primary/45";
 
-function describeError(cause: unknown): string {
-  return cause instanceof Error ? cause.message : String(cause);
-}
-
 /**
  * Token da paleta fechada, ou o padrão do wizard.
  *
- * A projeção guarda `color` como string de propósito (sync com versão mais nova).
- * No formulário só a paleta conhecida é selecionável; token desconhecido cai no
+ * Uma linha vinda do sync com versão mais nova pode trazer um token que esta
+ * versão não conhece. No formulário só a paleta conhecida é selecionável; token desconhecido cai no
  * padrão em vez de travar o rádio sem opção marcada.
  */
 function asColorToken(value: string): ColorToken {
@@ -39,8 +35,9 @@ function asColorToken(value: string): ColorToken {
  * Edição do perfil local: nome, cor e foto numa tela só.
  *
  * Diferente do wizard (três etapas obrigatórias na primeira vez), aqui a pessoa
- * já tem perfil e só quer ajustar um campo. Wizard de novo seria atrito; patch
- * parcial via `diffUser` evita lixo no log quando nada mudou.
+ * já tem perfil e só quer ajustar um campo. Wizard de novo seria atrito. O
+ * draft vai inteiro: o repositório não grava quando nada mudou, então "Salvar"
+ * sem mudança só fecha.
  */
 export function ProfilePage({ profile, store, processFile, onBack }: ProfilePageProps) {
   const [name, setName] = useState(profile.name);
@@ -76,18 +73,11 @@ export function ProfilePage({ profile, store, processFile, onBack }: ProfilePage
     }
 
     const next: UserDraft = { name: trimmed, color, avatar };
-    const patch = diffUser(profile, next);
-    // Patch vazio: o botão "Salvar" ainda fecha, porque o usuário pediu para
-    // sair com o que está na tela e nada precisa ir pro log.
-    if (Object.keys(patch).length === 0) {
-      onBack();
-      return;
-    }
 
     setSaving(true);
     setProblem(null);
     try {
-      await store.editProfile(profile.id, patch);
+      await store.editProfile(profile.id, next);
       onBack();
     } catch (cause) {
       setProblem(describeError(cause));

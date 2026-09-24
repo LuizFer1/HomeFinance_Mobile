@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import type { HomeFinanceDb } from "../../data/db";
 import { openTestDb, testSessionDeps } from "../../data/test-db.fake";
 import { createOnboardingStore } from "../onboarding/store";
-import { type Session, createSession } from "../session/session";
+import { createSession, type Session } from "../session/session";
 import { createProfileStore } from "./store";
 
 const LUIZ = { name: "Luiz", color: "teal", avatar: "data:image/webp;base64,AAAA" } as const;

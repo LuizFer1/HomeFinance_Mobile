@@ -1,12 +1,13 @@
 import type { Ulid } from "../../domain/ids/ulid";
-import type { CategoryRecord, PaymentMethodRecord } from "../../domain/projections/apply";
+import type { Category } from "../../domain/model/category";
+import type { PaymentMethod } from "../../domain/model/payment-method";
 import { cssVarForToken } from "../colors/color-token";
 import { Icon } from "../icons/icon";
 
 export interface RegistryListProps {
-  items: (CategoryRecord | PaymentMethodRecord)[];
+  items: (Category | PaymentMethod)[];
   emptyHint: string;
-  onEdit: (item: CategoryRecord | PaymentMethodRecord) => void;
+  onEdit: (item: Category | PaymentMethod) => void;
   onDelete: (id: Ulid) => void;
 }
 

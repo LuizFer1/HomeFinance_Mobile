@@ -1,19 +1,17 @@
 import { cleanup, fireEvent, render, screen, within } from "@testing-library/preact";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import type { CategoryRecord } from "../../domain/projections/apply";
+import type { Category } from "../../domain/projections/apply";
 import { RegistryList } from "./registry-list";
 
 afterEach(cleanup);
 
-function categoria(overrides: Partial<CategoryRecord> & { id: string }): CategoryRecord {
+function categoria(overrides: Partial<Category> & { id: string }): Category {
   return {
     name: "Mercado",
     icon: "utensils",
     color: "emerald",
     kind: "expense",
-    deleted: false,
-    materialized: true,
-    fieldHlc: {},
+    ...ALIVE,
     ...overrides,
   };
 }

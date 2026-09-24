@@ -1,13 +1,11 @@
 import { describe, expect, it } from "vitest";
-import {
-  type CategoryRecord,
-  EMPTY_STATE,
-  type ProjectionState,
-  type TransactionRecord,
-} from "./apply";
+import { type AppState, EMPTY_APP_STATE } from "../model/app-state";
+import type { Category } from "../model/category";
+import { ALIVE, DELETED_AT } from "../model/row.fake";
+import type { Transaction } from "../model/transaction";
 import { expenseByCategory, filterByMonth, monthlyTotals } from "./breakdown";
 
-function record(overrides: Partial<TransactionRecord> & { id: string }): TransactionRecord {
+function record(overrides: Partial<Transaction> & { id: string }): Transaction {
   return {
     kind: "expense",
     description: "Mercado",
@@ -20,29 +18,25 @@ function record(overrides: Partial<TransactionRecord> & { id: string }): Transac
     userId: null,
     recurrenceId: null,
     occurrenceKey: null,
-    deleted: false,
-    materialized: true,
-    fieldHlc: {},
+    ...ALIVE,
     ...overrides,
   };
 }
 
-function category(overrides: Partial<CategoryRecord> & { id: string }): CategoryRecord {
+function category(overrides: Partial<Category> & { id: string }): Category {
   return {
     name: "Casa",
     icon: "house",
     color: "rose",
     kind: "expense",
-    deleted: false,
-    materialized: true,
-    fieldHlc: {},
+    ...ALIVE,
     ...overrides,
   };
 }
 
-function stateWith(categories: CategoryRecord[]): ProjectionState {
+function stateWith(categories: Category[]): AppState {
   return {
-    ...EMPTY_STATE,
+    ...EMPTY_APP_STATE,
     categories: Object.fromEntries(categories.map((item) => [item.id, item])),
   };
 }
@@ -93,7 +87,7 @@ describe("expenseByCategory", () => {
   it("junta os sem categoria num balde neutro", () => {
     const items = [record({ id: "a", categoryId: null, amountMinor: 400 })];
 
-    expect(expenseByCategory(items, EMPTY_STATE)).toEqual([
+    expect(expenseByCategory(items, EMPTY_APP_STATE)).toEqual([
       { key: "sem-categoria", name: "Sem categoria", color: "slate", amountMinor: 400 },
     ]);
   });
@@ -101,7 +95,7 @@ describe("expenseByCategory", () => {
   it("mantém o gasto de categoria apagada, com rótulo neutro", () => {
     // Apagar categoria não cascateia: o gasto aconteceu e some da rosca seria
     // mentir sobre o total do mês.
-    const state = stateWith([category({ id: "c1", deleted: true })]);
+    const state = stateWith([category({ id: "c1", deletedAt: DELETED_AT })]);
     const items = [record({ id: "a", categoryId: "c1", amountMinor: 700 })];
 
     expect(expenseByCategory(items, state)).toEqual([
@@ -109,10 +103,10 @@ describe("expenseByCategory", () => {
     ]);
   });
 
-  it("trata categoria ainda não materializada como referência morta", () => {
-    // Update órfão cria a casca antes do create chegar. A casca não tem nome
-    // nem cor confiáveis, então o gasto existe mas o rótulo é o neutro.
-    const state = stateWith([category({ id: "c1", materialized: false })]);
+  it("trata categoria ausente do estado como referência morta", () => {
+    // Lançamento sincronizado antes da categoria dele chegar: o gasto existe,
+    // mas não há nome nem cor confiáveis, então o rótulo é o neutro.
+    const state = stateWith([]);
     const items = [record({ id: "a", categoryId: "c1", amountMinor: 600 })];
 
     expect(expenseByCategory(items, state)).toEqual([
@@ -122,7 +116,7 @@ describe("expenseByCategory", () => {
 
   it("mantém ordem estável quando duas categorias empatam em valor", () => {
     // Sem o desempate a ordem vem da inserção no Map e as fatias trocam de
-    // lugar a cada refold do log, com a rosca piscando sem nada ter mudado.
+    // lugar conforme a ordem de inserção, com a rosca piscando sem nada ter mudado.
     const state = stateWith([
       category({ id: "c2", name: "Comida" }),
       category({ id: "c1", name: "Casa" }),

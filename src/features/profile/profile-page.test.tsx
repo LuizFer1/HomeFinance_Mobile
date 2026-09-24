@@ -1,19 +1,17 @@
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/preact";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import type { UserRecord } from "../../domain/projections/apply";
+import type { User } from "../../domain/projections/apply";
 import { ProfilePage } from "./profile-page";
 import type { ProfileStore } from "./store";
 
 afterEach(cleanup);
 
-const PERFIL: UserRecord = {
+const PERFIL: User = {
   id: "cat-user-1",
   name: "Luiz",
   color: "teal",
   avatar: null,
-  deleted: false,
-  materialized: true,
-  fieldHlc: {},
+  ...ALIVE,
 };
 
 const FOTO = "data:image/webp;base64,AAAA";
@@ -27,7 +25,7 @@ function fakeStore(): ProfileStore {
 
 function montar(
   over: {
-    profile?: UserRecord;
+    profile?: User;
     store?: ProfileStore;
     processFile?: (file: Blob) => Promise<string>;
     onBack?: () => void;

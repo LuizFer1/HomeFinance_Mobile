@@ -1,9 +1,10 @@
 import { useState } from "preact/hooks";
-import type { ColorToken } from "../../domain/events/reference";
-import type { UserDraft } from "../../domain/events/user";
+import type { ColorToken } from "../../domain/model/tokens";
+import type { UserDraft } from "../../domain/model/user";
 import { BrandMark } from "../brand/brand-mark";
 import { COLOR_TOKENS, cssVarForToken } from "../colors/color-token";
 import { Avatar } from "../profile/avatar-view";
+import { describeError } from "../session/session";
 import { StepIndicator } from "../transactions/step-indicator";
 
 export interface OnboardingWizardProps {
@@ -25,10 +26,6 @@ const ACTION = "hf-press rounded-field px-4 py-3 text-base font-medium";
 const SWATCH =
   "hf-press flex size-10 cursor-pointer items-center justify-center rounded-full " +
   "transition-transform duration-150 has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-primary/45";
-
-function describeError(cause: unknown): string {
-  return cause instanceof Error ? cause.message : String(cause);
-}
 
 /**
  * Boas-vindas em três decisões: nome, cor, foto.

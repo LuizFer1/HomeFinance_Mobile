@@ -1,5 +1,7 @@
-import type { ProjectionState, TransactionRecord } from "./apply";
-import { NEUTRAL_TOKEN } from "./entities";
+import type { AppState } from "../model/app-state";
+import { isAlive } from "../model/base";
+import { NEUTRAL_TOKEN } from "../model/tokens";
+import type { Transaction } from "../model/transaction";
 import { monthOf } from "./periods";
 import { resolveCategoryName } from "./selectors";
 
@@ -9,7 +11,7 @@ export interface CategorySlice {
    *
    * Não é `Ulid | null`: "Sem categoria" e o balde "Outras" seriam ambos nulos
    * e colidiriam como `key` do Preact, fazendo as duas fatias piscarem uma
-   * sobre a outra a cada refold. As duas constantes abaixo são minúsculas e um
+   * sobre a outra a cada render. As duas constantes abaixo são minúsculas e um
    * ULID é maiúsculo, então não há como um id real colidir com elas.
    */
   key: string;
@@ -36,7 +38,7 @@ const OTHERS = "outras";
  */
 const MAX_SLICES = 6;
 
-export function filterByMonth(records: TransactionRecord[], month: string): TransactionRecord[] {
+export function filterByMonth(records: Transaction[], month: string): Transaction[] {
   return records.filter((record) => monthOf(record.occurredOn) === month);
 }
 
@@ -47,10 +49,7 @@ export function filterByMonth(records: TransactionRecord[], month: string): Tran
  * regra de visibilidade, então chamar isto com o bucket cru soma lançamento
  * apagado em silêncio.
  */
-export function expenseByCategory(
-  records: TransactionRecord[],
-  state: ProjectionState,
-): CategorySlice[] {
+export function expenseByCategory(records: Transaction[], state: AppState): CategorySlice[] {
   const buckets = new Map<string, CategorySlice>();
 
   for (const record of records) {
@@ -66,12 +65,12 @@ export function expenseByCategory(
     // Categoria viva empresta a cor dela; ausente ou apagada cai no neutro.
     // O nome sai do resolvedor que já existe, inclusive o "Categoria removida".
     const category = record.categoryId === null ? undefined : state.categories[record.categoryId];
-    const alive = category?.materialized && !category.deleted;
+    const alive = isAlive(category);
 
     buckets.set(key, {
       key,
       name: resolveCategoryName(state, record.categoryId),
-      color: alive && category !== undefined ? category.color : NEUTRAL_TOKEN,
+      color: alive ? category.color : NEUTRAL_TOKEN,
       amountMinor: record.amountMinor,
     });
   }
@@ -79,7 +78,7 @@ export function expenseByCategory(
   const slices = [...buckets.values()].sort((a, b) => {
     if (a.amountMinor !== b.amountMinor) return b.amountMinor - a.amountMinor;
     // Desempate por chave: sem ele a ordem depende da inserção no Map e as
-    // fatias trocam de lugar a cada refold do log.
+    // fatias trocam de lugar conforme a ordem de inserção.
     if (a.key === b.key) return 0;
     return a.key < b.key ? -1 : 1;
   });
@@ -110,7 +109,7 @@ export function expenseByCategory(
  * colapsam e a saída fica menor que a entrada — hoje a única origem é
  * `lastMonths`, que nunca repete.
  */
-export function monthlyTotals(records: TransactionRecord[], months: string[]): MonthTotals[] {
+export function monthlyTotals(records: Transaction[], months: string[]): MonthTotals[] {
   const buckets = new Map<string, MonthTotals>();
   for (const month of months) {
     buckets.set(month, { month, incomeMinor: 0, expenseMinor: 0 });
@@ -118,7 +117,7 @@ export function monthlyTotals(records: TransactionRecord[], months: string[]): M
 
   for (const record of records) {
     const entry = buckets.get(monthOf(record.occurredOn));
-    // Fora da janela pedida. Não é erro: o log guarda tudo, a janela é da tela.
+    // Fora da janela pedida. Não é erro: o banco guarda tudo, a janela é da tela.
     if (entry === undefined) continue;
     if (record.kind === "income") entry.incomeMinor += record.amountMinor;
     else entry.expenseMinor += record.amountMinor;

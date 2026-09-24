@@ -1,22 +1,20 @@
 import { cleanup, fireEvent, render, screen } from "@testing-library/preact";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import type { CategoryRecord, PaymentMethodRecord } from "../../domain/projections/apply";
+import type { Category, PaymentMethod } from "../../domain/projections/apply";
 import { RegistryWizard, type RegistryWizardProps } from "./registry-wizard";
 
 afterEach(cleanup);
 
-const CATEGORIA: CategoryRecord = {
+const CATEGORIA: Category = {
   id: "cat-1",
   name: "Mercado",
   icon: "tag",
   color: "slate",
   kind: "expense",
-  deleted: false,
-  materialized: true,
-  fieldHlc: {},
+  ...ALIVE,
 };
 
-const METODO: PaymentMethodRecord = { ...CATEGORIA, id: "pm-1", name: "Nubank", kind: "credit" };
+const METODO: PaymentMethod = { ...CATEGORIA, id: "pm-1", name: "Nubank", kind: "credit" };
 
 function montar(over: Partial<RegistryWizardProps> = {}) {
   const onSubmit = vi.fn();

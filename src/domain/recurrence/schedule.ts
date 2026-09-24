@@ -1,6 +1,6 @@
 import { dayOfMonthClamped, nthBusinessDayOfMonth } from "../dates/business-day";
 import { shiftMonth } from "../dates/calendar";
-import type { RecurrenceFrequency, ScheduleType } from "../events/recurrence";
+import type { RecurrenceFrequency, ScheduleType } from "../model/recurrence";
 
 export const FREQUENCY_MONTHS: Record<RecurrenceFrequency, number> = {
   monthly: 1,

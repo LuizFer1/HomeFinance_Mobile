@@ -3,7 +3,7 @@ import type { Ulid } from "../../domain/ids/ulid";
 import type { Recurrence, RecurrenceDraft, RecurrenceRule } from "../../domain/model/recurrence";
 import type { Transaction, TransactionDraft } from "../../domain/model/transaction";
 import { planOccurrences } from "../../domain/recurrence/plan";
-import type { Session } from "../session/session";
+import { describeError, type Session } from "../session/session";
 
 /**
  * Série de recorrência: cria a partir de um lançamento + regra, materializa o
@@ -41,7 +41,7 @@ export function createRecurrenceStore(session: Session): RecurrenceStore {
       );
       await session.insertMissing("transactions", rows);
     } catch (cause) {
-      session.error.value = cause instanceof Error ? cause.message : String(cause);
+      session.error.value = describeError(cause);
       throw cause;
     }
   }

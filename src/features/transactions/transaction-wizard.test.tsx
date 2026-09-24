@@ -1,15 +1,11 @@
 import { cleanup, fireEvent, render, screen } from "@testing-library/preact";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import type {
-  CategoryRecord,
-  PaymentMethodRecord,
-  TransactionRecord,
-} from "../../domain/projections/apply";
+import type { Category, PaymentMethod, Transaction } from "../../domain/projections/apply";
 import { TransactionWizard } from "./transaction-wizard";
 
 afterEach(cleanup);
 
-const RECORD: TransactionRecord = {
+const RECORD: Transaction = {
   id: "01J9F3K2M7QX8YB4TVWZ0DCEH2",
   kind: "expense",
   description: "Mercado",
@@ -22,38 +18,32 @@ const RECORD: TransactionRecord = {
   userId: null,
   recurrenceId: null,
   occurrenceKey: null,
-  deleted: false,
-  materialized: true,
-  fieldHlc: {},
+  ...ALIVE,
 };
 
-const CATEGORIAS: CategoryRecord[] = [
+const CATEGORIAS: Category[] = [
   {
     id: "cat-1",
     name: "Alimentacao",
     icon: "utensils",
     color: "emerald",
     kind: "expense",
-    deleted: false,
-    materialized: true,
-    fieldHlc: {},
+    ...ALIVE,
   },
 ];
 
-function metodo(over: Partial<PaymentMethodRecord> & { id: string }): PaymentMethodRecord {
+function metodo(over: Partial<PaymentMethod> & { id: string }): PaymentMethod {
   return {
     name: "Nubank",
     icon: "credit-card",
     color: "violet",
     kind: "credit",
-    deleted: false,
-    materialized: true,
-    fieldHlc: {},
+    ...ALIVE,
     ...over,
   };
 }
 
-const METODOS: PaymentMethodRecord[] = [
+const METODOS: PaymentMethod[] = [
   metodo({ id: "pm-credito", name: "Cartao credito", kind: "credit" }),
   metodo({ id: "pm-debito", name: "Cartao debito", kind: "debit" }),
   metodo({ id: "pm-dinheiro", name: "Dinheiro", kind: "cash" }),
@@ -310,7 +300,7 @@ describe("cashback condicionado", () => {
 });
 
 describe("limpeza do cashback", () => {
-  const COM_CASHBACK: TransactionRecord = {
+  const COM_CASHBACK: Transaction = {
     ...RECORD,
     paymentMethodId: "pm-credito",
     cashbackMinor: 500,
@@ -381,10 +371,10 @@ describe("referências e listas vazias", () => {
 });
 
 describe("categoria filtrada pelo tipo do lancamento", () => {
-  const TODAS: CategoryRecord[] = [
-    { ...(CATEGORIAS[0] as CategoryRecord), id: "cat-desp", name: "Alimentacao", kind: "expense" },
-    { ...(CATEGORIAS[0] as CategoryRecord), id: "cat-rec", name: "Salario", kind: "income" },
-    { ...(CATEGORIAS[0] as CategoryRecord), id: "cat-ambos", name: "Investimentos", kind: "both" },
+  const TODAS: Category[] = [
+    { ...(CATEGORIAS[0] as Category), id: "cat-desp", name: "Alimentacao", kind: "expense" },
+    { ...(CATEGORIAS[0] as Category), id: "cat-rec", name: "Salario", kind: "income" },
+    { ...(CATEGORIAS[0] as Category), id: "cat-ambos", name: "Investimentos", kind: "both" },
   ];
 
   function ateACategoria() {

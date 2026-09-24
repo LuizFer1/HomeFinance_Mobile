@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { HomeFinanceDb } from "../../data/db";
 import { openTestDb, testSessionDeps } from "../../data/test-db.fake";
 import type { TransactionDraft } from "../../domain/model/transaction";
-import { type Session, createSession } from "../session/session";
+import { createSession, type Session } from "../session/session";
 import { createTransactionsStore, type TransactionsStore } from "./store";
 
 const MERCADO: TransactionDraft = {

@@ -1,4 +1,4 @@
-import type { TransactionKind } from "../events/transaction";
+import type { TransactionKind } from "../model/transaction";
 
 /**
  * Se o lançamento comporta cashback.

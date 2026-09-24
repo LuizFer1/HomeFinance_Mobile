@@ -1,6 +1,6 @@
 import { cleanup, fireEvent, render, screen } from "@testing-library/preact";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { EMPTY_STATE, type ProjectionState } from "../../domain/projections/apply";
+import { type AppState, EMPTY_APP_STATE } from "../../domain/projections/apply";
 import { RegistryPage } from "./registry-page";
 import type { RegistryStore } from "./store";
 
@@ -23,9 +23,7 @@ const CATEGORIA = {
   icon: "utensils",
   color: "emerald",
   kind: "expense",
-  deleted: false,
-  materialized: true,
-  fieldHlc: {},
+  ...ALIVE,
 };
 
 const RECEITA = {
@@ -34,9 +32,7 @@ const RECEITA = {
   icon: "banknote",
   color: "emerald",
   kind: "income",
-  deleted: false,
-  materialized: true,
-  fieldHlc: {},
+  ...ALIVE,
 };
 
 const AMBAS = {
@@ -45,13 +41,11 @@ const AMBAS = {
   icon: "chart",
   color: "sky",
   kind: "both",
-  deleted: false,
-  materialized: true,
-  fieldHlc: {},
+  ...ALIVE,
 };
 
-const stateWith = (over: Partial<ProjectionState>): ProjectionState => ({
-  ...EMPTY_STATE,
+const stateWith = (over: Partial<AppState>): AppState => ({
+  ...EMPTY_APP_STATE,
   ...over,
 });
 
@@ -79,7 +73,7 @@ describe("RegistryPage", () => {
   it("a mesma composição serve categorias e formas de pagamento", () => {
     const store = fakeStore();
     const { unmount } = render(
-      <RegistryPage entity="category" state={EMPTY_STATE} store={store} onBack={vi.fn()} />,
+      <RegistryPage entity="category" state={EMPTY_APP_STATE} store={store} onBack={vi.fn()} />,
     );
     expect(screen.getByRole("region", { name: "Categorias" })).toBeDefined();
     abrirCadastro();
@@ -87,7 +81,12 @@ describe("RegistryPage", () => {
     unmount();
 
     render(
-      <RegistryPage entity="paymentMethod" state={EMPTY_STATE} store={store} onBack={vi.fn()} />,
+      <RegistryPage
+        entity="paymentMethod"
+        state={EMPTY_APP_STATE}
+        store={store}
+        onBack={vi.fn()}
+      />,
     );
     expect(screen.getByRole("region", { name: "Formas de pagamento" })).toBeDefined();
     abrirCadastro();
@@ -96,7 +95,9 @@ describe("RegistryPage", () => {
 
   it("criar categoria chama a store da entidade certa", () => {
     const store = fakeStore();
-    render(<RegistryPage entity="category" state={EMPTY_STATE} store={store} onBack={vi.fn()} />);
+    render(
+      <RegistryPage entity="category" state={EMPTY_APP_STATE} store={store} onBack={vi.fn()} />,
+    );
 
     abrirCadastro();
     preencherNome("Transporte");
@@ -109,7 +110,12 @@ describe("RegistryPage", () => {
   it("criar forma de pagamento nao chama a store de categoria", () => {
     const store = fakeStore();
     render(
-      <RegistryPage entity="paymentMethod" state={EMPTY_STATE} store={store} onBack={vi.fn()} />,
+      <RegistryPage
+        entity="paymentMethod"
+        state={EMPTY_APP_STATE}
+        store={store}
+        onBack={vi.fn()}
+      />,
     );
 
     abrirCadastro();
@@ -227,7 +233,12 @@ describe("RegistryPage", () => {
   it("formas de pagamento nao ganham abas de receita e despesa", () => {
     const store = fakeStore();
     render(
-      <RegistryPage entity="paymentMethod" state={EMPTY_STATE} store={store} onBack={vi.fn()} />,
+      <RegistryPage
+        entity="paymentMethod"
+        state={EMPTY_APP_STATE}
+        store={store}
+        onBack={vi.fn()}
+      />,
     );
 
     expect(screen.queryByRole("radio", { name: "Despesas" })).toBeNull();
