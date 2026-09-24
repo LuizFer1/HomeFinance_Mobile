@@ -4,3 +4,5 @@ coverage/
 *.local
 .DS_Store
 .vite/
+.claude/worktrees/
+design_handoff_homefinance_redesign/
