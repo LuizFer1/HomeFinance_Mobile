@@ -159,9 +159,7 @@ describe("createRecurrenceStore (CRUD)", () => {
     const withSeries = await session.mutate("recurrences", (repo) => repo.create(seriesDraft));
     cru.state.value = { ...cru.state.value, recurrences: { [withSeries.id]: withSeries } };
 
-    await expect(storeCru.materializeDue("2026-08-10")).rejects.toThrow(
-      "Sessão não inicializada",
-    );
+    await expect(storeCru.materializeDue("2026-08-10")).rejects.toThrow("Sessão não inicializada");
     expect(cru.error.value).toBe("Sessão não inicializada");
   });
 
