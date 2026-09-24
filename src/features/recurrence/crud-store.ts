@@ -21,18 +21,29 @@ export interface RecurrenceStore {
 
 export function createRecurrenceStore(session: CrudSession): RecurrenceStore {
   async function materializeDue(today: string): Promise<void> {
-    const plans = planOccurrences(session.state.value, today);
-    if (plans.length === 0) return;
+    // Todo o corpo entra no try: `clock()` chamado antes do `init` concluir é
+    // um erro de uso, mas ainda tem que preencher `error` como qualquer outra
+    // falha — quem só observa o signal não pode perder o motivo.
+    try {
+      const plans = planOccurrences(session.state.value, today);
+      if (plans.length === 0) return;
 
-    const clock = session.clock();
-    const userId = session.localUserId.value;
-    // Monta as linhas fora da transação (`buildRow` não grava) e grava todas
-    // de uma vez com `putRows`: um lote só em vez de N escritas soltas, e o
-    // id determinístico de cada ocorrência já vem do plano.
-    const rows = plans.map((plan) =>
-      buildRow<Transaction>(clock, { ...plan.draft, userId }, plan.entityId),
-    );
-    await session.putRows({ transactions: rows });
+      const clock = session.clock();
+      const userId = session.localUserId.value;
+      // Monta as linhas fora da transação (`buildRow` não grava). O plano
+      // veio do `state` em memória, que pode estar desatualizado (outra aba
+      // ainda não recarregou); `insertMissing` — e não `putRows`/`bulkPut` —
+      // é quem grava, porque ele nunca sobrescreve uma linha que já existe no
+      // banco. Sem isso, a ocorrência que o usuário apagou nesta ou noutra
+      // aba voltaria viva no próximo boot.
+      const rows = plans.map((plan) =>
+        buildRow<Transaction>(clock, { ...plan.draft, userId }, plan.entityId),
+      );
+      await session.insertMissing("transactions", rows);
+    } catch (cause) {
+      session.error.value = cause instanceof Error ? cause.message : String(cause);
+      throw cause;
+    }
   }
 
   return {

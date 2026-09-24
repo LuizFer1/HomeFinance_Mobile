@@ -80,9 +80,20 @@ describe("createRecurrenceStore (CRUD)", () => {
     expect(await db.transactions.count()).toBe(3);
   });
 
-  it("materializeDue repetido não duplica", async () => {
+  it("materializeDue repetido não duplica nem atualiza as linhas existentes", async () => {
     await store.createSeries(DRAFT, MENSAL, "2026-08-10");
+    const antes = alive()
+      .map((t) => ({ id: t.id, updatedAt: t.updatedAt }))
+      .sort((a, b) => a.id.localeCompare(b.id));
+
     await store.materializeDue("2026-08-10");
+
+    // `insertMissing` não regrava quem já existe: se regravasse, `updatedAt`
+    // teria avançado mesmo sem mudança nenhuma de conteúdo.
+    const depois = alive()
+      .map((t) => ({ id: t.id, updatedAt: t.updatedAt }))
+      .sort((a, b) => a.id.localeCompare(b.id));
+    expect(depois).toEqual(antes);
     expect(await db.transactions.count()).toBe(3);
   });
 
@@ -95,6 +106,7 @@ describe("createRecurrenceStore (CRUD)", () => {
     await store.materializeDue("2026-08-10");
 
     expect(session.state.value.transactions[junho.id]?.deletedAt).not.toBeNull();
+    expect((await db.transactions.get(junho.id))?.deletedAt).not.toBeNull();
     expect(alive()).toHaveLength(2);
   });
 
@@ -106,6 +118,7 @@ describe("createRecurrenceStore (CRUD)", () => {
 
     await store.materializeDue("2026-09-10");
     expect(alive()).toHaveLength(1);
+    expect(await db.transactions.count()).toBe(1);
   });
 
   it("removeSeries marca deletedAt e mantém o histórico", async () => {
@@ -116,12 +129,84 @@ describe("createRecurrenceStore (CRUD)", () => {
     await store.removeSeries(serie.id);
 
     expect(session.state.value.recurrences[serie.id]?.deletedAt).not.toBeNull();
+    expect((await db.recurrences.get(serie.id))?.deletedAt).not.toBeNull();
     expect(alive()).toHaveLength(2);
+  });
+
+  it("materializeDue antes do init preenche session.error (M3)", async () => {
+    const cru = createCrudSession(testSessionDeps(db));
+    const storeCru = createRecurrenceStore(cru);
+    // Sem `init()`: `clock()` lança "Sessão não inicializada" dentro de
+    // `materializeDue`, que precisa preencher `error` como qualquer outra
+    // falha de escrita — não só relançar.
+    const seriesDraft: RecurrenceDraft = {
+      kind: DRAFT.kind,
+      description: DRAFT.description,
+      amountMinor: DRAFT.amountMinor,
+      currency: "BRL",
+      categoryId: DRAFT.categoryId,
+      paymentMethodId: DRAFT.paymentMethodId,
+      cashbackMinor: DRAFT.cashbackMinor,
+      frequency: MENSAL.frequency,
+      scheduleType: MENSAL.scheduleType,
+      scheduleN: MENSAL.scheduleN,
+      startOn: DRAFT.occurredOn,
+      endOn: MENSAL.endOn,
+      active: true,
+    };
+    // Precisa de uma série pendente no `state` para `materializeDue` chegar
+    // até o `clock()` — sem plano, a função retorna cedo.
+    const withSeries = await session.mutate("recurrences", (repo) => repo.create(seriesDraft));
+    cru.state.value = { ...cru.state.value, recurrences: { [withSeries.id]: withSeries } };
+
+    await expect(storeCru.materializeDue("2026-08-10")).rejects.toThrow(
+      "Sessão não inicializada",
+    );
+    expect(cru.error.value).toBe("Sessão não inicializada");
   });
 
   it("falha ao criar a série rejeita e não materializa", async () => {
     vi.spyOn(db.recurrences, "put").mockRejectedValueOnce(new Error("quota exceeded"));
     await expect(store.createSeries(DRAFT, MENSAL, "2026-08-10")).rejects.toThrow();
     expect(await db.transactions.count()).toBe(0);
+  });
+
+  it("sessão desatualizada não revive ocorrência apagada por outra sessão (I1)", async () => {
+    const seriesDraft: RecurrenceDraft = {
+      kind: DRAFT.kind,
+      description: DRAFT.description,
+      amountMinor: DRAFT.amountMinor,
+      currency: "BRL",
+      categoryId: DRAFT.categoryId,
+      paymentMethodId: DRAFT.paymentMethodId,
+      cashbackMinor: DRAFT.cashbackMinor,
+      frequency: MENSAL.frequency,
+      scheduleType: MENSAL.scheduleType,
+      scheduleN: MENSAL.scheduleN,
+      startOn: DRAFT.occurredOn,
+      endOn: MENSAL.endOn,
+      active: true,
+    };
+    // A série existe, mas ainda sem nenhuma ocorrência materializada.
+    await session.mutate("recurrences", (repo) => repo.create(seriesDraft));
+
+    // A sessão B nasce agora: sabe da série, mas seu `state.transactions`
+    // fica vazio para sempre — nada nesta suíte a atualiza depois do boot.
+    const sessionB = createCrudSession(testSessionDeps(db));
+    await sessionB.init();
+    const storeB = createRecurrenceStore(sessionB);
+
+    // A sessão original (A) materializa e depois apaga a competência de junho.
+    await store.materializeDue("2026-08-10");
+    const junho = alive().find((t) => t.occurredOn === "2026-06-05");
+    if (junho === undefined) throw new Error("junho não materializado");
+    await session.mutate("transactions", (repo) => repo.remove(junho.id));
+
+    // B, sem saber de nada disso, tenta materializar de novo. Sem
+    // `insertMissing`, isto sobrescreveria a linha apagada com uma nova.
+    await storeB.materializeDue("2026-08-10");
+
+    expect((await db.transactions.get(junho.id))?.deletedAt).not.toBeNull();
+    expect(await db.transactions.count()).toBe(3);
   });
 });
