@@ -52,6 +52,12 @@ export interface CrudSession {
    * mesmo que a transação grave as duas no banco. Falha (incluindo `clock()`
    * chamado antes do `init` concluir) preenche `error` **e relança**; nada
    * fica gravado, porque `op` roda dentro da transação da tabela.
+   *
+   * Dentro de `op`, só chamadas ao repositório — nenhum `await` de outra
+   * coisa. Qualquer `await` que não seja do IndexedDB (rede, `setTimeout`,
+   * processamento de imagem) encerra a transação do Dexie por inatividade
+   * (`TransactionInactiveError`), e uma subtransação que falha aborta a
+   * externa mesmo que quem chamou `mutate` capture o erro num `try/catch`.
    */
   mutate: <K extends TableName>(
     table: K,
@@ -212,7 +218,14 @@ export function createCrudSession(deps: CrudSessionDeps): CrudSession {
         [...tables.map((table) => deps.db.table(table)), deps.db.meta],
         async () => {
           for (const table of tables) await deps.db.table(table).bulkPut(rows[table] ?? []);
-          for (const [key, value] of Object.entries(meta)) await deps.db.meta.put({ key, value });
+          // `value === undefined` é descartado: `{ localUserId: undefined }`
+          // compila (a chave é opcional) mas, sem este filtro, gravaria
+          // `{ key: "localUserId" }` sem `value` no IndexedDB — uma linha de
+          // `meta` corrompida em vez de simplesmente não escrever nada.
+          for (const [key, value] of Object.entries(meta)) {
+            if (value === undefined) continue;
+            await deps.db.meta.put({ key, value });
+          }
         },
       );
     } catch (cause) {
