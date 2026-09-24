@@ -15,7 +15,11 @@ let repo: Repository<Category>;
 beforeEach(() => {
   db = openTestDb();
   const deps = testSessionDeps(db);
-  clock = createRowClock({ deviceId: TEST_DEVICE_ID, now: deps.now, randomChunk: deps.randomChunk });
+  clock = createRowClock({
+    deviceId: TEST_DEVICE_ID,
+    now: deps.now,
+    randomChunk: deps.randomChunk,
+  });
   repo = createRepository(db.categories, clock);
 });
 
