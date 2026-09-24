@@ -89,7 +89,7 @@ export const ICON_SET = {
 export type IconKey = keyof typeof ICON_SET;
 
 /**
- * Chave desconhecida cai aqui em vez de não renderizar nada. O log é eterno e um
+ * Chave desconhecida cai aqui em vez de não renderizar nada. Via sync, um
  * aparelho de versão mais nova pode gravar uma chave que esta versão não conhece.
  */
 export const FALLBACK_ICON = CircleDashed;

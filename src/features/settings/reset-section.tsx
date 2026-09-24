@@ -17,7 +17,7 @@ const FIELD =
  *
  * Duas razões, e nenhuma é estética: um diálogo nativo do navegador bloqueia a
  * thread e não é estilizável dentro do tema, e esta é a ação mais destrutiva do
- * app — a única sem desfazer, porque o log apagado não volta de lugar nenhum.
+ * app — a única sem desfazer, porque o banco apagado não volta de lugar nenhum.
  *
  * O backup prévio e o relatório CSV chegam com a fatia de configurações. Aqui
  * entra só o caminho de volta ao primeiro uso, que esta fatia tornou necessário:

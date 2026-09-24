@@ -18,7 +18,7 @@ export interface RegistryStore {
 }
 
 /**
- * Não guarda estado próprio: relógio, projeção e persistência vêm da
+ * Não guarda estado próprio: relógio, estado em memória e persistência vêm da
  * `Session`, compartilhada com a store de transações. Cada método faz uma
  * única chamada ao repositório dentro de `mutate`, como o contrato exige.
  */

@@ -50,7 +50,7 @@ export function occurrenceOn(
 }
 
 /**
- * Chave lógica da competência. Dois eventos com a mesma chave e o mesmo
+ * Chave lógica da competência. Duas linhas com a mesma chave e o mesmo
  * `recurrenceId` são a mesma ocorrência — o `entityId` determinístico deriva
  * disto.
  */

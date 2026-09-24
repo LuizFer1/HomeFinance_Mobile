@@ -110,7 +110,7 @@ export function RegistryWizard({
     }
     // Duplicata é decisão de produto, validada aqui e não no domínio: depois do
     // sync duas pessoas podem criar "Mercado" ao mesmo tempo legitimamente, e o
-    // log aceita as duas. A tela avisa; o fold não rejeita.
+    // banco aceita as duas. A tela avisa; o repositório não rejeita.
     if (conflicts && !isOwnName) {
       setProblem("Ja existe um item com esse nome.");
       return false;

@@ -230,9 +230,9 @@ export function TransactionWizard({
         paymentMethodId,
         // A limpeza acontece aqui, no draft, e não escondendo o campo. Um cashback
         // pendurado numa despesa em dinheiro seria dado sujo permanente: invisível
-        // na tela, presente no export, imortal no log append-only.
+        // na tela, presente no export, replicado pelo sync.
         // Campo vazio continua sendo `null`, não zero: "não houve cashback" e
-        // "voltou R$ 0,00" são coisas diferentes, e o log guarda as duas para sempre.
+        // "voltou R$ 0,00" são coisas diferentes, e o banco guarda as duas.
         cashbackMinor: showsCashback && cashback !== "" ? minorOf(cashback) : null,
         occurredOn,
         // Avulso: a série e a competência só entram pela materialização.

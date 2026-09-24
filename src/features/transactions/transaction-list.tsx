@@ -71,8 +71,9 @@ function releaseCapture(target: HTMLElement, pointerId: number) {
 /**
  * Excluir exige segurar, não um toque.
  *
- * Esta é a única ação de um toque só do app sem desfazer: o log é append-only e
- * o evento de delete nasce eterno. E o alvo fica encostado no botão de editar,
+ * Esta é a única ação de um toque só do app sem desfazer: não há tela para
+ * restaurar uma linha apagada, e o sync propaga o `deletedAt` para o outro
+ * aparelho. E o alvo fica encostado no botão de editar,
  * que ocupa a linha inteira — num celular, o custo do escorregão é permanente.
  *
  * O preenchimento não é enfeite: ele é a leitura de quanto falta, e é o que

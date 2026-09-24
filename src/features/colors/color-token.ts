@@ -14,7 +14,7 @@ export const FALLBACK_TOKEN = NEUTRAL_TOKEN;
  * Os valores moram no CSS e não num objeto TypeScript: é isso que faz o tema
  * escuro funcionar sem JavaScript e sem um segundo lugar para esquecer de
  * atualizar. Token desconhecido — vindo de uma versão futura via sync — cai no
- * neutro; o fold aceitou o valor de propósito, e descartar aqui perderia a
+ * neutro na tela; a linha guarda o valor como veio, e descartar aqui perderia a
  * informação para sempre.
  */
 export function cssVarForToken(token: string): string {

@@ -1,7 +1,7 @@
 import { FALLBACK_ICON, ICON_SET } from "./icon-set";
 
 export interface IconProps {
-  /** Chave persistida no log. String livre de propósito — ver `icon-set.ts`. */
+  /** Chave persistida na linha. String livre de propósito — ver `icon-set.ts`. */
   name: string;
   size?: number;
   /** Sem rótulo o ícone é decorativo e sai da árvore de acessibilidade. */

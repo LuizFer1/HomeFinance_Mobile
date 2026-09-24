@@ -13,7 +13,7 @@ describe("Icon", () => {
   });
 
   it("cai no ícone neutro para chave desconhecida", () => {
-    // O log é eterno: um aparelho de versão mais nova pode gravar uma chave que
+    // Via sync, um aparelho de versão mais nova pode gravar uma chave que
     // esta versão não conhece. Não renderizar nada deixaria o item sem âncora
     // visual e o usuário sem entender o que sumiu.
     render(<Icon name="chave-de-uma-versao-futura" />);
