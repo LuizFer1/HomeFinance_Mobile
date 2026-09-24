@@ -99,19 +99,22 @@ describe("pickLang", () => {
 describe("applyLang", () => {
   it("troca textos, aria-label, alt e o lang do documento", () => {
     const doc = landingDocument();
+    // Seletor que nao acha nada faria o `?.` devolver undefined e a assercao
+    // passar comparando undefined com undefined: o elemento tem que existir.
+    const el = (selector: string) => {
+      const found = doc.querySelector(selector);
+      expect(found, selector).not.toBeNull();
+      return found;
+    };
     applyLang(doc, "pt");
 
     expect(doc.documentElement.lang).toBe("pt-BR");
-    expect(doc.querySelector('[data-i18n="cta.install"]')?.textContent).toBe("Instalar app");
-    expect(doc.querySelector('[data-i18n-label="sheet.close"]')?.getAttribute("aria-label")).toBe(
-      "Fechar",
-    );
-    expect(doc.querySelector('[data-i18n-alt="desk.qr"]')?.getAttribute("alt")).toBe(
-      messages.pt["desk.qr"],
-    );
+    expect(el('[data-i18n="cta.install"]')?.textContent).toBe("Instalar app");
+    expect(el('[data-i18n-label="sheet.close"]')?.getAttribute("aria-label")).toBe("Fechar");
+    expect(el('[data-i18n-alt="qr.alt"]')?.getAttribute("alt")).toBe(messages.pt["qr.alt"]);
 
     applyLang(doc, "en");
     expect(doc.documentElement.lang).toBe("en");
-    expect(doc.querySelector('[data-i18n="cta.install"]')?.textContent).toBe("Install app");
+    expect(el('[data-i18n="cta.install"]')?.textContent).toBe("Install app");
   });
 });
