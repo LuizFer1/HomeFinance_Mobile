@@ -51,6 +51,37 @@ describe("createOnboardingStore (CRUD)", () => {
 
     expect(store.needsOnboarding.value).toBe(true);
     expect(await db.users.count()).toBe(0);
+    expect(await db.paymentMethods.count()).toBe(0);
+    expect(await db.categories.count()).toBe(0);
     expect(await db.meta.get(LOCAL_USER_ID_KEY)).toBeUndefined();
+    expect(session.error.value).toBe("quota exceeded");
+  });
+
+  it("dois complete simultâneos semeiam só uma vez", async () => {
+    const session = createCrudSession(testSessionDeps(db));
+    await session.init();
+    const store = createOnboardingStore(session);
+
+    // As duas chamadas começam antes de qualquer `localUserId` ser publicado,
+    // então um guard que só olha `localUserId.value !== null` não pega isto.
+    await Promise.all([store.complete(LUIZ), store.complete(LUIZ)]);
+
+    expect(await db.users.count()).toBe(1);
+    expect(await db.paymentMethods.count()).toBe(4);
+    expect(await db.categories.count()).toBe(12);
+  });
+
+  it("depois de uma falha, um novo complete funciona", async () => {
+    const session = createCrudSession(testSessionDeps(db));
+    await session.init();
+    const store = createOnboardingStore(session);
+    vi.spyOn(db.categories, "bulkPut").mockRejectedValueOnce(new Error("quota exceeded"));
+
+    await expect(store.complete(LUIZ)).rejects.toThrow("quota exceeded");
+    await store.complete(LUIZ);
+
+    expect(store.needsOnboarding.value).toBe(false);
+    expect(await db.users.count()).toBe(1);
+    expect(await db.categories.count()).toBe(12);
   });
 });
