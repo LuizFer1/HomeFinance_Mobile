@@ -34,7 +34,7 @@ import { PaceChart } from "./pace-chart";
 export interface DashboardPageProps {
   /** Já filtrados por `listTransactions`: o App calcula uma vez e reusa. */
   items: Transaction[];
-  /** Necessário para resolver nome e cor das categorias das fatias. */
+  /** Resolve categorias, formas de pagamento e séries recorrentes. */
   state: AppState;
   /** Hoje em 'YYYY-MM-DD'. Vem de fora pelo mesmo motivo que no App. */
   today: string;

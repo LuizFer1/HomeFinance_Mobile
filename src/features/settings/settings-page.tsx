@@ -19,7 +19,7 @@ export interface SettingsPageProps {
   profile: User | null;
   theme: ThemeToggleProps;
   onOpen: (section: SettingsSection) => void;
-  onReset: () => void;
+  onReset: () => Promise<void>;
 }
 
 const ROW = "relative flex min-h-14 w-full items-center gap-3 px-4 py-3 text-left";

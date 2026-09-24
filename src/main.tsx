@@ -81,8 +81,8 @@ render(
     recurrence={recurrence}
     onboarding={onboarding}
     processFile={(file) => processAvatar(file, browserAvatarDeps)}
-    onReset={() => {
-      void resetDevice({
+    onReset={() =>
+      resetDevice({
         db,
         // Só referenciar as APIs já lança em contexto sandbox — por isso o
         // typeof e o optional chaining, não um assert de presença.
@@ -94,8 +94,8 @@ render(
         reload: () => {
           window.location.reload();
         },
-      });
-    }}
+      })
+    }
     today={todayISO()}
     hour={new Date().getHours()}
     theme={{ storage: safeStorage(), doc: document }}

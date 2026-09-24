@@ -19,6 +19,11 @@ export interface ProfilePageProps {
   onBack: () => void;
   /** Avisa a cor em escolha, para o brilho do topo acompanhar antes de salvar. */
   onColorPreview?: (token: string) => void;
+  /**
+   * Limpa o alerta global (`session.error`). A falha de salvar aparece aqui,
+   * perto do botão; sem isto o mesmo erro sairia também no topo da tela.
+   */
+  onDismissGlobalError?: () => void;
 }
 
 /**
@@ -46,6 +51,7 @@ export function ProfilePage({
   processFile,
   onBack,
   onColorPreview,
+  onDismissGlobalError,
 }: ProfilePageProps) {
   const [name, setName] = useState(profile.name);
   const [color, setColor] = useState<ColorToken>(() => asColorToken(profile.color));
@@ -93,6 +99,7 @@ export function ProfilePage({
       onBack();
     } catch (cause) {
       setProblem(describeError(cause));
+      onDismissGlobalError?.();
     } finally {
       setSaving(false);
     }

@@ -35,6 +35,7 @@ function montar(
     store?: ProfileStore;
     processFile?: (file: Blob) => Promise<string>;
     onBack?: () => void;
+    onDismissGlobalError?: () => void;
   } = {},
 ) {
   const store = over.store ?? fakeStore();
@@ -46,6 +47,7 @@ function montar(
       store={store}
       processFile={processFile}
       onBack={onBack}
+      onDismissGlobalError={over.onDismissGlobalError}
     />,
   );
   return { store, onBack, processFile };
@@ -92,18 +94,20 @@ describe("ProfilePage", () => {
     });
   });
 
-  it("falha ao salvar mostra o erro e fica na tela", async () => {
+  it("falha ao salvar mostra o erro, fica na tela e limpa o alerta global", async () => {
     const store: ProfileStore = {
       editProfile: vi.fn(async (): Promise<User> => {
         throw new Error("disco cheio");
       }),
     };
-    const { onBack } = montar({ store });
+    const onDismissGlobalError = vi.fn();
+    const { onBack } = montar({ store, onDismissGlobalError });
 
     fireEvent.click(screen.getByRole("button", { name: /salvar/i }));
 
     expect((await screen.findByRole("alert")).textContent).toMatch(/disco cheio/);
     expect(onBack).not.toHaveBeenCalled();
+    expect(onDismissGlobalError).toHaveBeenCalledTimes(1);
   });
 
   it("nome vazio bloqueia e nao grava", async () => {

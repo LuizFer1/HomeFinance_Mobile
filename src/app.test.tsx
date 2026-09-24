@@ -69,7 +69,7 @@ function buildStores(db: HomeFinanceDb) {
     recurrence: createRecurrenceStore(session),
     onboarding: createOnboardingStore(session),
     processFile: () => Promise.resolve("data:image/webp;base64,AAAA"),
-    onReset: () => {},
+    onReset: async () => {},
   };
 }
 
@@ -726,7 +726,7 @@ describe("primeiro uso", () => {
 });
 
 describe("perfil e reset nas configuracoes", () => {
-  async function emAjustes(onReset = () => {}) {
+  async function emAjustes(onReset: () => Promise<void> = async () => {}) {
     const db = await cadastrado();
     render(
       <App
@@ -760,6 +760,37 @@ describe("perfil e reset nas configuracoes", () => {
     fireEvent.click(botao);
 
     expect(onReset).toHaveBeenCalledTimes(1);
+  });
+
+  it("reset que falha mostra o motivo no sheet, sem rejeicao solta", async () => {
+    await emAjustes(async () => {
+      throw new Error("Banco bloqueado por outra aba");
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: /resetar conta/i }));
+    const sheet = within(screen.getByRole("dialog", { name: "Resetar conta" }));
+    fireEvent.input(screen.getByLabelText(/digite apagar/i), { target: { value: "APAGAR" } });
+    fireEvent.click(sheet.getByRole("button", { name: /^resetar conta$/i }));
+
+    expect((await sheet.findByRole("alert")).textContent).toContain(
+      "Banco bloqueado por outra aba",
+    );
+  });
+
+  it("falha ao salvar o perfil aparece num alerta so, junto do formulario", async () => {
+    // A falha passa pelo `mutate`, que preenche `session.error`; a tela de
+    // perfil mostra o motivo perto do botão e limpa o global, para o mesmo
+    // erro não aparecer duas vezes.
+    const db = await emAjustes();
+    fireEvent.click(screen.getByRole("button", { name: /Luiz/ }));
+    vi.spyOn(db.users, "put").mockRejectedValueOnce(new Error("disco cheio"));
+
+    fireEvent.input(screen.getByLabelText(/seu nome/i), { target: { value: "Ana" } });
+    fireEvent.click(screen.getByRole("button", { name: /salvar/i }));
+
+    await waitFor(() => expect(screen.getByRole("alert").textContent).toContain("disco cheio"));
+    expect(screen.getAllByRole("alert")).toHaveLength(1);
+    expect(screen.getByRole("region", { name: "Seu perfil" })).toBeDefined();
   });
 
   it("edita nome e cor do perfil e volta para Ajustes", async () => {

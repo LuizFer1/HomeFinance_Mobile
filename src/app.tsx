@@ -43,7 +43,8 @@ export interface AppProps {
   onboarding: OnboardingStore;
   /** Pipeline da foto já ligado ao canvas. Injetado: `happy-dom` não tem um. */
   processFile: (file: Blob) => Promise<string>;
-  onReset: () => void;
+  /** Rejeita se o banco não apagou; a tela de reset mostra o motivo. */
+  onReset: () => Promise<void>;
   /** Data de hoje em 'YYYY-MM-DD'. Vem de fora para o teste não depender do relógio. */
   today: string;
   /** Hora local 0..23, injetada pelo mesmo motivo que `today`. */
@@ -275,6 +276,9 @@ export function App({
                 store={profileStore}
                 processFile={processFile}
                 onColorPreview={setGlow}
+                onDismissGlobalError={() => {
+                  session.error.value = null;
+                }}
                 onBack={() => {
                   setGlow(null);
                   setSection(null);
