@@ -20,6 +20,7 @@ beforeEach(async () => {
 });
 
 afterEach(async () => {
+  vi.restoreAllMocks();
   await db.delete();
 });
 
@@ -37,12 +38,14 @@ describe("createRegistryStore (CRUD)", () => {
     expect(edited.name).toBe("Supermercado");
     expect(compareHlc(edited.updatedAt, created.updatedAt)).toBe(1);
     expect(session.state.value.categories[created.id]?.name).toBe("Supermercado");
+    expect(await db.categories.get(created.id)).toEqual(edited);
   });
 
   it("editCategory sem mudança não avança updatedAt", async () => {
     const created = await store.addCategory(MERCADO);
     const same = await store.editCategory(created.id, { ...MERCADO });
     expect(same.updatedAt).toBe(created.updatedAt);
+    expect(await db.categories.get(created.id)).toEqual(created);
   });
 
   it("removeCategory marca deletedAt e mantém a linha", async () => {
@@ -50,6 +53,7 @@ describe("createRegistryStore (CRUD)", () => {
     await store.removeCategory(created.id);
 
     expect(session.state.value.categories[created.id]?.deletedAt).not.toBeNull();
+    expect((await db.categories.get(created.id))?.deletedAt).not.toBeNull();
     expect(await db.categories.count()).toBe(1);
   });
 
@@ -57,14 +61,29 @@ describe("createRegistryStore (CRUD)", () => {
     const created = await store.addPaymentMethod(NUBANK);
     await store.editPaymentMethod(created.id, { ...NUBANK, kind: "debit" });
     expect(session.state.value.paymentMethods[created.id]?.kind).toBe("debit");
+    expect((await db.paymentMethods.get(created.id))?.kind).toBe("debit");
 
     await store.removePaymentMethod(created.id);
     expect(session.state.value.paymentMethods[created.id]?.deletedAt).not.toBeNull();
+    expect((await db.paymentMethods.get(created.id))?.deletedAt).not.toBeNull();
   });
 
   it("falha de escrita rejeita e não publica", async () => {
     vi.spyOn(db.categories, "put").mockRejectedValueOnce(new Error("quota exceeded"));
     await expect(store.addCategory(MERCADO)).rejects.toThrow("quota exceeded");
     expect(session.state.value.categories).toEqual({});
+  });
+
+  it("falha de escrita no edit rejeita e mantém a linha antiga", async () => {
+    const created = await store.addCategory(MERCADO);
+    vi.spyOn(db.categories, "put").mockRejectedValueOnce(new Error("quota exceeded"));
+
+    await expect(
+      store.editCategory(created.id, { ...MERCADO, name: "Supermercado" }),
+    ).rejects.toThrow("quota exceeded");
+
+    expect(session.state.value.categories[created.id]).toEqual(created);
+    expect(await db.categories.get(created.id)).toEqual(created);
+    expect(session.error.value).toBe("quota exceeded");
   });
 });
