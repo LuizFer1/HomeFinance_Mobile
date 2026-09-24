@@ -42,7 +42,11 @@ function stateWith(series: Recurrence, transactions: Transaction[] = []): AppSta
 describe("planOccurrences", () => {
   it("planeja uma ocorrência por competência vencida", () => {
     const plans = planOccurrences(stateWith(SALARIO), "2026-08-10");
-    expect(plans.map((p) => p.draft.occurredOn)).toEqual(["2026-06-05", "2026-07-05", "2026-08-05"]);
+    expect(plans.map((p) => p.draft.occurredOn)).toEqual([
+      "2026-06-05",
+      "2026-07-05",
+      "2026-08-05",
+    ]);
     expect(plans[0]?.draft).toMatchObject({ recurrenceId: "SERIE-1", amountMinor: 500_000 });
   });
 
