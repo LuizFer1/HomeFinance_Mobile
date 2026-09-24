@@ -1,9 +1,10 @@
-import { cleanup, fireEvent, render, screen } from "@testing-library/preact";
+import { act, cleanup, fireEvent, render, screen } from "@testing-library/preact";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { type AppState, EMPTY_APP_STATE } from "../../domain/model/app-state";
 import type { Category } from "../../domain/model/category";
 import type { PaymentMethod } from "../../domain/model/payment-method";
 import { ALIVE } from "../../domain/model/row.fake";
+import { HOLD_MS } from "../ui/hold-button";
 import { RegistryPage } from "./registry-page";
 import type { RegistryStore } from "./store";
 
@@ -74,7 +75,7 @@ function abrirEdicao() {
 }
 
 function preencherNome(valor: string) {
-  fireEvent.input(screen.getByLabelText(/nome/i), { target: { value: valor } });
+  fireEvent.input(screen.getByRole("textbox", { name: "Nome" }), { target: { value: valor } });
 }
 
 /** Avanca as tres etapas e salva. */
@@ -88,7 +89,14 @@ describe("RegistryPage", () => {
   it("a mesma composição serve categorias e formas de pagamento", () => {
     const store = fakeStore();
     const { unmount } = render(
-      <RegistryPage entity="category" state={EMPTY_APP_STATE} store={store} onBack={vi.fn()} />,
+      <RegistryPage
+        entity="category"
+        state={EMPTY_APP_STATE}
+        items={[]}
+        today="2026-09-24"
+        store={store}
+        onBack={vi.fn()}
+      />,
     );
     expect(screen.getByRole("region", { name: "Categorias" })).toBeDefined();
     abrirCadastro();
@@ -99,6 +107,8 @@ describe("RegistryPage", () => {
       <RegistryPage
         entity="paymentMethod"
         state={EMPTY_APP_STATE}
+        items={[]}
+        today="2026-09-24"
         store={store}
         onBack={vi.fn()}
       />,
@@ -111,7 +121,14 @@ describe("RegistryPage", () => {
   it("criar categoria chama a store da entidade certa", () => {
     const store = fakeStore();
     render(
-      <RegistryPage entity="category" state={EMPTY_APP_STATE} store={store} onBack={vi.fn()} />,
+      <RegistryPage
+        entity="category"
+        state={EMPTY_APP_STATE}
+        items={[]}
+        today="2026-09-24"
+        store={store}
+        onBack={vi.fn()}
+      />,
     );
 
     abrirCadastro();
@@ -128,6 +145,8 @@ describe("RegistryPage", () => {
       <RegistryPage
         entity="paymentMethod"
         state={EMPTY_APP_STATE}
+        items={[]}
+        today="2026-09-24"
         store={store}
         onBack={vi.fn()}
       />,
@@ -148,6 +167,8 @@ describe("RegistryPage", () => {
       <RegistryPage
         entity="category"
         state={stateWith({ categories: { "cat-1": CATEGORIA } })}
+        items={[]}
+        today="2026-09-24"
         store={store}
         onBack={vi.fn()}
       />,
@@ -173,6 +194,8 @@ describe("RegistryPage", () => {
       <RegistryPage
         entity="category"
         state={stateWith({ categories: { "cat-1": CATEGORIA } })}
+        items={[]}
+        today="2026-09-24"
         store={store}
         onBack={vi.fn()}
       />,
@@ -201,6 +224,8 @@ describe("RegistryPage", () => {
       <RegistryPage
         entity="category"
         state={stateWith({ categories: { "cat-1": CATEGORIA } })}
+        items={[]}
+        today="2026-09-24"
         store={store}
         onBack={vi.fn()}
       />,
@@ -220,12 +245,21 @@ describe("RegistryPage", () => {
       <RegistryPage
         entity="category"
         state={stateWith({ categories: { "cat-1": CATEGORIA } })}
+        items={[]}
+        today="2026-09-24"
         store={store}
         onBack={vi.fn()}
       />,
     );
 
-    fireEvent.click(screen.getByRole("button", { name: /excluir/i }));
+    // Excluir saiu da linha: mora no sheet de edicao, e exige segurar.
+    vi.useFakeTimers();
+    abrirEdicao();
+    fireEvent.pointerDown(screen.getByRole("button", { name: /excluir mercado/i }));
+    act(() => {
+      vi.advanceTimersByTime(HOLD_MS);
+    });
+    vi.useRealTimers();
 
     expect(store.removeCategory).toHaveBeenCalledWith("cat-1");
   });
@@ -239,6 +273,8 @@ describe("RegistryPage", () => {
           categories: { "cat-1": CATEGORIA },
           paymentMethods: { "pm-1": FORMA },
         })}
+        items={[]}
+        today="2026-09-24"
         store={store}
         onBack={vi.fn()}
       />,
@@ -262,19 +298,21 @@ describe("RegistryPage", () => {
             "cat-3": AMBAS,
           },
         })}
+        items={[]}
+        today="2026-09-24"
         store={store}
         onBack={vi.fn()}
       />,
     );
 
-    expect(screen.getByRole("radio", { name: "Despesas" })).toBeDefined();
-    expect(screen.getByRole("radio", { name: "Receitas" })).toBeDefined();
+    expect(screen.getByRole("radio", { name: /^Despesas/ })).toBeDefined();
+    expect(screen.getByRole("radio", { name: /^Receitas/ })).toBeDefined();
 
     expect(screen.getByText("Mercado")).toBeDefined();
     expect(screen.getByText("Investimentos")).toBeDefined();
     expect(screen.queryByText("Salário")).toBeNull();
 
-    fireEvent.click(screen.getByRole("radio", { name: "Receitas" }));
+    fireEvent.click(screen.getByRole("radio", { name: /^Receitas/ }));
 
     expect(screen.getByText("Salário")).toBeDefined();
     expect(screen.getByText("Investimentos")).toBeDefined();
@@ -287,13 +325,15 @@ describe("RegistryPage", () => {
       <RegistryPage
         entity="paymentMethod"
         state={EMPTY_APP_STATE}
+        items={[]}
+        today="2026-09-24"
         store={store}
         onBack={vi.fn()}
       />,
     );
 
-    expect(screen.queryByRole("radio", { name: "Despesas" })).toBeNull();
-    expect(screen.queryByRole("radio", { name: "Receitas" })).toBeNull();
+    expect(screen.queryByRole("radio", { name: /^Despesas/ })).toBeNull();
+    expect(screen.queryByRole("radio", { name: /^Receitas/ })).toBeNull();
   });
 
   it("mostra dica vazia do lado da aba ativa", () => {
@@ -302,12 +342,82 @@ describe("RegistryPage", () => {
       <RegistryPage
         entity="category"
         state={stateWith({ categories: { "cat-1": CATEGORIA } })}
+        items={[]}
+        today="2026-09-24"
         store={store}
         onBack={vi.fn()}
       />,
     );
 
-    fireEvent.click(screen.getByRole("radio", { name: "Receitas" }));
+    fireEvent.click(screen.getByRole("radio", { name: /^Receitas/ }));
     expect(screen.getByText("Nenhuma categoria de receita ainda.")).toBeDefined();
+  });
+
+  it("as abas contam quantas categorias cada lado tem", () => {
+    render(
+      <RegistryPage
+        entity="category"
+        state={stateWith({ categories: { "cat-1": CATEGORIA, "cat-2": RECEITA, "cat-3": AMBAS } })}
+        items={[]}
+        today="2026-09-24"
+        store={fakeStore()}
+        onBack={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByRole("radio", { name: "Despesas (2)" })).toBeDefined();
+    expect(screen.getByRole("radio", { name: "Receitas (2)" })).toBeDefined();
+  });
+
+  it("mostra o uso no mes para ajudar a decidir o que excluir", () => {
+    const lancamento = {
+      id: "t-1",
+      kind: "expense" as const,
+      description: "Feira",
+      amountMinor: 100,
+      currency: "BRL" as const,
+      categoryId: "cat-1",
+      paymentMethodId: null,
+      cashbackMinor: null,
+      occurredOn: "2026-09-10",
+      userId: null,
+      recurrenceId: null,
+      occurrenceKey: null,
+      ...ALIVE,
+    };
+    render(
+      <RegistryPage
+        entity="category"
+        state={stateWith({ categories: { "cat-1": CATEGORIA, "cat-3": AMBAS } })}
+        items={[lancamento]}
+        today="2026-09-24"
+        store={fakeStore()}
+        onBack={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByText("1 lançamento no mês")).toBeDefined();
+    expect(screen.getByText("Sem lançamentos no mês")).toBeDefined();
+  });
+
+  it("pagamentos mostram o tipo e marcam o que libera cashback", () => {
+    render(
+      <RegistryPage
+        entity="paymentMethod"
+        state={stateWith({
+          paymentMethods: {
+            "pm-1": { ...CATEGORIA, id: "pm-1", name: "Nubank", kind: "credit" },
+            "pm-2": { ...CATEGORIA, id: "pm-2", name: "Pix", kind: "pix" },
+          },
+        })}
+        items={[]}
+        today="2026-09-24"
+        store={fakeStore()}
+        onBack={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByText("Crédito")).toBeDefined();
+    expect(screen.getAllByText("cashback")).toHaveLength(1);
   });
 });

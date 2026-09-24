@@ -1,3 +1,4 @@
+import type { Ulid } from "../../domain/ids/ulid";
 import type { AppState } from "../../domain/model/app-state";
 import type { Category, CategoryDraft } from "../../domain/model/category";
 import type { PaymentMethod, PaymentMethodDraft } from "../../domain/model/payment-method";
@@ -17,6 +18,8 @@ export interface RegistryFormModalProps {
   state: AppState;
   store: RegistryStore;
   onClose: () => void;
+  /** Excluir mora no sheet de edição (segurar a lixeira). */
+  onDelete: (id: Ulid) => void;
 }
 
 export const REGISTRY_COPY = {
@@ -24,11 +27,13 @@ export const REGISTRY_COPY = {
     title: "Categorias",
     empty: "Nenhuma categoria ainda.",
     create: "Nova categoria",
+    edit: "Editar categoria",
   },
   paymentMethod: {
     title: "Formas de pagamento",
     empty: "Nenhuma forma de pagamento ainda.",
     create: "Nova forma de pagamento",
+    edit: "Editar forma de pagamento",
   },
 } as const;
 
@@ -47,6 +52,7 @@ export function RegistryFormModal({
   state,
   store,
   onClose,
+  onDelete,
 }: RegistryFormModalProps) {
   const isPayment = entity === "paymentMethod";
   const items: RegistryRecord[] = isPayment ? listPaymentMethods(state) : listCategories(state);
@@ -73,7 +79,7 @@ export function RegistryFormModal({
   }
 
   return (
-    <Modal open={open} title={editing === null ? copy.create : "Editar item"} onClose={onClose}>
+    <Modal open={open} title={editing === null ? copy.create : copy.edit} onClose={onClose}>
       {/*
         Montada só enquanto aberta, com `key` derivada do registro: trocar de
         registro remonta a wizard e os inicializadores de `useState` releem as
@@ -88,6 +94,7 @@ export function RegistryFormModal({
           existingNames={items.map((item) => item.name)}
           onSubmit={handleSubmit}
           onCancel={onClose}
+          onDelete={editing === null ? undefined : () => onDelete(editing.id)}
         />
       )}
     </Modal>

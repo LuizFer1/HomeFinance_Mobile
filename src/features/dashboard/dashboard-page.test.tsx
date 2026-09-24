@@ -1,4 +1,4 @@
-import { cleanup, render, screen } from "@testing-library/preact";
+import { cleanup, fireEvent, render, screen } from "@testing-library/preact";
 import { afterEach, describe, expect, it } from "vitest";
 import { type AppState, EMPTY_APP_STATE } from "../../domain/model/app-state";
 import type { Category } from "../../domain/model/category";
@@ -39,8 +39,9 @@ describe("DashboardPage", () => {
   it("diz quando não há lançamento nenhum", () => {
     const { container } = render(<DashboardPage items={[]} state={stateWith()} today={TODAY} />);
 
-    expect(screen.getByRole("heading", { name: /Nenhum lançamento ainda/i })).toBeDefined();
-    expect(container.querySelector('img[src*="undraw_budgeting_light"]')).not.toBeNull();
+    expect(screen.getByRole("heading", { name: "O resumo de agosto aparece aqui" })).toBeDefined();
+    // Esqueleto tracejado no lugar da ilustração genérica.
+    expect(container.querySelector("img")).toBeNull();
   });
 
   it("com dados nao mostra a ilustracao de vazio", () => {
@@ -48,7 +49,7 @@ describe("DashboardPage", () => {
       <DashboardPage items={[record({ id: "a" })]} state={stateWith()} today={TODAY} />,
     );
 
-    expect(container.querySelector('img[src*="undraw_budgeting"]')).toBeNull();
+    expect(container.querySelector("img")).toBeNull();
   });
 
   it("anuncia o mês por extenso", () => {
@@ -126,7 +127,7 @@ describe("DashboardPage", () => {
 
     const saldo = screen.getByTestId("dashboard-balance");
 
-    expect(saldo.className).toContain("text-error");
+    expect(saldo.className).toContain("text-expense-fg");
     expect(saldo.textContent).toContain("80,00");
   });
 
@@ -139,7 +140,7 @@ describe("DashboardPage", () => {
       />,
     );
 
-    expect(screen.getByTestId("dashboard-balance").className).not.toContain("text-error");
+    expect(screen.getByTestId("dashboard-balance").className).not.toContain("text-expense-fg");
   });
 
   it("mostra os vazios do mês e da série juntos quando o histórico está fora da janela", () => {
@@ -170,5 +171,82 @@ describe("DashboardPage", () => {
     );
 
     expect(screen.getByTestId("total-expense").textContent).toContain("40,00");
+  });
+
+  it("o seletor de mês recalcula os cards e não anda para o futuro", () => {
+    render(
+      <DashboardPage
+        items={[
+          record({ id: "a", amountMinor: 1000, occurredOn: "2026-08-05" }),
+          record({ id: "b", amountMinor: 7000, occurredOn: "2026-07-05" }),
+        ]}
+        state={stateWith()}
+        today={TODAY}
+      />,
+    );
+
+    expect(screen.getByRole("button", { name: "Próximo mês" })).toHaveProperty("disabled", true);
+
+    fireEvent.click(screen.getByRole("button", { name: "Mês anterior" }));
+
+    expect(screen.getByText("julho de 2026")).toBeDefined();
+    expect(screen.getByTestId("total-expense").textContent).toContain("70,00");
+  });
+
+  it("compara o saldo com o mês anterior", () => {
+    render(
+      <DashboardPage
+        items={[
+          record({ id: "a", kind: "income", amountMinor: 50_000, occurredOn: "2026-08-02" }),
+          record({ id: "b", kind: "income", amountMinor: 8800, occurredOn: "2026-07-02" }),
+        ]}
+        state={stateWith()}
+        today={TODAY}
+      />,
+    );
+
+    expect(screen.getByText(/412,00 a mais que julho/)).toBeDefined();
+  });
+
+  it("o ritmo compara com o mesmo dia do mês anterior", () => {
+    render(
+      <DashboardPage
+        items={[
+          record({ id: "a", amountMinor: 9200, occurredOn: "2026-08-03" }),
+          record({ id: "b", amountMinor: 10_000, occurredOn: "2026-07-04" }),
+          record({ id: "c", amountMinor: 99_999, occurredOn: "2026-07-25" }),
+        ]}
+        state={stateWith()}
+        today={TODAY}
+      />,
+    );
+
+    expect(screen.getByText(/até o dia 10/)).toBeDefined();
+    expect(screen.getByText(/8% abaixo/)).toBeDefined();
+  });
+
+  it("para onde foi lista as categorias com a parte de cada uma", () => {
+    const casa: Category = {
+      id: "casa",
+      name: "Moradia",
+      icon: "house",
+      color: "amber",
+      kind: "expense",
+      ...ALIVE,
+    };
+    render(
+      <DashboardPage
+        items={[
+          record({ id: "a", amountMinor: 7500, categoryId: "casa" }),
+          record({ id: "b", amountMinor: 2500 }),
+        ]}
+        state={stateWith([casa])}
+        today={TODAY}
+      />,
+    );
+
+    expect(screen.getByText("2 categorias")).toBeDefined();
+    expect(screen.getByText("75%")).toBeDefined();
+    expect(screen.getByText("Sem categoria")).toBeDefined();
   });
 });

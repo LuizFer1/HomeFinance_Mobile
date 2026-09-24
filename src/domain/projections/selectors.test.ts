@@ -16,7 +16,7 @@ import {
   totals,
 } from "./selectors";
 
-/** Parte de EMPTY_APP_STATE: bucket novo na projeção não obriga a tocar cada literal daqui. */
+/** Parte de EMPTY_APP_STATE: tabela nova no estado não obriga a tocar cada literal daqui. */
 function stateWith(transactions: Record<string, Transaction>): AppState {
   return { ...EMPTY_APP_STATE, transactions };
 }

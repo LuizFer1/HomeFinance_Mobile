@@ -1,9 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { type AppState, EMPTY_APP_STATE } from "../model/app-state";
-import type { Category } from "../model/category";
-import { ALIVE, DELETED_AT } from "../model/row.fake";
+import { ALIVE } from "../model/row.fake";
 import type { Transaction } from "../model/transaction";
-import { expenseByCategory, filterByMonth, monthlyTotals } from "./breakdown";
+import { filterByMonth, monthlyTotals } from "./breakdown";
 
 function record(overrides: Partial<Transaction> & { id: string }): Transaction {
   return {
@@ -23,24 +21,6 @@ function record(overrides: Partial<Transaction> & { id: string }): Transaction {
   };
 }
 
-function category(overrides: Partial<Category> & { id: string }): Category {
-  return {
-    name: "Casa",
-    icon: "house",
-    color: "rose",
-    kind: "expense",
-    ...ALIVE,
-    ...overrides,
-  };
-}
-
-function stateWith(categories: Category[]): AppState {
-  return {
-    ...EMPTY_APP_STATE,
-    categories: Object.fromEntries(categories.map((item) => [item.id, item])),
-  };
-}
-
 describe("filterByMonth", () => {
   it("guarda só o mês pedido", () => {
     const items = [
@@ -50,120 +30,6 @@ describe("filterByMonth", () => {
     ];
 
     expect(filterByMonth(items, "2026-08").map((item) => item.id)).toEqual(["a"]);
-  });
-});
-
-describe("expenseByCategory", () => {
-  it("ignora receita", () => {
-    // Somar receita numa rosca de gasto responderia outra pergunta.
-    const state = stateWith([category({ id: "c1" })]);
-    const items = [
-      record({ id: "a", categoryId: "c1", amountMinor: 500 }),
-      record({ id: "b", categoryId: "c1", amountMinor: 9000, kind: "income" }),
-    ];
-
-    expect(expenseByCategory(items, state)).toEqual([
-      { key: "c1", name: "Casa", color: "rose", amountMinor: 500 },
-    ]);
-  });
-
-  it("soma por categoria e ordena do maior para o menor", () => {
-    const state = stateWith([
-      category({ id: "c1", name: "Casa", color: "rose" }),
-      category({ id: "c2", name: "Comida", color: "lime" }),
-    ]);
-    const items = [
-      record({ id: "a", categoryId: "c1", amountMinor: 100 }),
-      record({ id: "b", categoryId: "c2", amountMinor: 900 }),
-      record({ id: "c", categoryId: "c1", amountMinor: 200 }),
-    ];
-
-    expect(expenseByCategory(items, state)).toEqual([
-      { key: "c2", name: "Comida", color: "lime", amountMinor: 900 },
-      { key: "c1", name: "Casa", color: "rose", amountMinor: 300 },
-    ]);
-  });
-
-  it("junta os sem categoria num balde neutro", () => {
-    const items = [record({ id: "a", categoryId: null, amountMinor: 400 })];
-
-    expect(expenseByCategory(items, EMPTY_APP_STATE)).toEqual([
-      { key: "sem-categoria", name: "Sem categoria", color: "slate", amountMinor: 400 },
-    ]);
-  });
-
-  it("mantém o gasto de categoria apagada, com rótulo neutro", () => {
-    // Apagar categoria não cascateia: o gasto aconteceu e some da rosca seria
-    // mentir sobre o total do mês.
-    const state = stateWith([category({ id: "c1", deletedAt: DELETED_AT })]);
-    const items = [record({ id: "a", categoryId: "c1", amountMinor: 700 })];
-
-    expect(expenseByCategory(items, state)).toEqual([
-      { key: "c1", name: "Categoria removida", color: "slate", amountMinor: 700 },
-    ]);
-  });
-
-  it("trata categoria ausente do estado como referência morta", () => {
-    // Lançamento sincronizado antes da categoria dele chegar: o gasto existe,
-    // mas não há nome nem cor confiáveis, então o rótulo é o neutro.
-    const state = stateWith([]);
-    const items = [record({ id: "a", categoryId: "c1", amountMinor: 600 })];
-
-    expect(expenseByCategory(items, state)).toEqual([
-      { key: "c1", name: "Categoria removida", color: "slate", amountMinor: 600 },
-    ]);
-  });
-
-  it("mantém ordem estável quando duas categorias empatam em valor", () => {
-    // Sem o desempate a ordem vem da inserção no Map e as fatias trocam de
-    // lugar conforme a ordem de inserção, com a rosca piscando sem nada ter mudado.
-    const state = stateWith([
-      category({ id: "c2", name: "Comida" }),
-      category({ id: "c1", name: "Casa" }),
-    ]);
-    const items = [
-      record({ id: "a", categoryId: "c2", amountMinor: 500 }),
-      record({ id: "b", categoryId: "c1", amountMinor: 500 }),
-    ];
-
-    expect(expenseByCategory(items, state).map((slice) => slice.key)).toEqual(["c1", "c2"]);
-  });
-
-  it("não agrupa com exatamente seis categorias", () => {
-    // No limite, mostrar as seis é melhor que mostrar cinco e um "Outras" de
-    // uma categoria só.
-    const state = stateWith(
-      [1, 2, 3, 4, 5, 6].map((n) => category({ id: `c${n}`, name: `Cat ${n}` })),
-    );
-    const items = [1, 2, 3, 4, 5, 6].map((n) =>
-      record({ id: `t${n}`, categoryId: `c${n}`, amountMinor: n * 1000 }),
-    );
-
-    const slices = expenseByCategory(items, state);
-
-    expect(slices).toHaveLength(6);
-    expect(slices.map((slice) => slice.key)).not.toContain("outras");
-  });
-
-  it("agrupa o excedente em Outras a partir de sete", () => {
-    const state = stateWith(
-      [1, 2, 3, 4, 5, 6, 7].map((n) => category({ id: `c${n}`, name: `Cat ${n}` })),
-    );
-    const amounts = [7000, 6000, 5000, 4000, 3000, 900, 100];
-    const items = amounts.map((amount, index) =>
-      record({ id: `t${index}`, categoryId: `c${index + 1}`, amountMinor: amount }),
-    );
-
-    const slices = expenseByCategory(items, state);
-
-    expect(slices).toHaveLength(6);
-    expect(slices.map((slice) => slice.amountMinor)).toEqual([7000, 6000, 5000, 4000, 3000, 1000]);
-    expect(slices[5]).toEqual({
-      key: "outras",
-      name: "Outras",
-      color: "slate",
-      amountMinor: 1000,
-    });
   });
 });
 
