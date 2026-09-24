@@ -31,11 +31,39 @@ const SALARIO: Recurrence = {
   active: true,
 };
 
+/** Só para `nthBusinessDay` — casos portados de `materialize.test.ts` (M1). */
+const SALARIO_DIA_UTIL: Recurrence = {
+  ...SALARIO,
+  id: "SERIE-2",
+  scheduleType: "nthBusinessDay",
+  startOn: "2026-06-01",
+};
+
 function stateWith(series: Recurrence, transactions: Transaction[] = []): AppState {
   return {
     ...EMPTY_APP_STATE,
     recurrences: { [series.id]: series },
     transactions: Object.fromEntries(transactions.map((t) => [t.id, t])),
+  };
+}
+
+/** Ocorrência já materializada para `series`, na competência `period`. */
+function occurrenceOf(series: Recurrence, period: string, occurredOn: string): Transaction {
+  const key = occurrenceKey(series.id, period);
+  return {
+    ...BASE,
+    id: stableEntityId(key),
+    kind: series.kind,
+    description: series.description,
+    amountMinor: series.amountMinor,
+    currency: series.currency,
+    categoryId: series.categoryId,
+    paymentMethodId: series.paymentMethodId,
+    cashbackMinor: series.cashbackMinor,
+    occurredOn,
+    userId: null,
+    recurrenceId: series.id,
+    occurrenceKey: key,
   };
 }
 
@@ -84,5 +112,51 @@ describe("planOccurrences", () => {
   it("respeita endOn", () => {
     const plans = planOccurrences(stateWith({ ...SALARIO, endOn: "2026-07-01" }), "2026-09-10");
     expect(plans.map((p) => p.draft.occurredOn)).toEqual(["2026-06-05"]);
+  });
+
+  it("não planeja competência já materializada e viva", () => {
+    const junho = occurrenceOf(SALARIO, "2026-06", "2026-06-05");
+    const plans = planOccurrences(stateWith(SALARIO, [junho]), "2026-07-10");
+    expect(plans.map((p) => p.draft.occurredOn)).toEqual(["2026-07-05"]);
+  });
+
+  it("não gera a competência do mês corrente que ainda não chegou", () => {
+    // Dia 5, hoje é dia 3: agosto ainda não venceu.
+    const plans = planOccurrences(stateWith(SALARIO), "2026-08-03");
+    expect(plans.map((p) => p.draft.occurredOn)).toEqual(["2026-06-05", "2026-07-05"]);
+  });
+
+  it("estado vazio não planeja nada", () => {
+    expect(planOccurrences(EMPTY_APP_STATE, "2026-08-11")).toEqual([]);
+  });
+
+  describe("nthBusinessDay (portado de materialize.test.ts)", () => {
+    it("gera competências vencidas até hoje no 5º dia útil", () => {
+      // 2026-08-11: 5º útil de ago = 07, de jul = 07, de jun = 05 — todos <= 11.
+      const plans = planOccurrences(stateWith(SALARIO_DIA_UTIL), "2026-08-11");
+      expect(plans.map((p) => p.draft.occurredOn)).toEqual([
+        "2026-06-05",
+        "2026-07-07",
+        "2026-08-07",
+      ]);
+      expect(plans[0]?.entityId).toBe(stableEntityId(occurrenceKey("SERIE-2", "2026-06")));
+      expect(plans[0]?.draft.recurrenceId).toBe("SERIE-2");
+    });
+
+    it("não gera competência futura nem série pausada", () => {
+      // 2026-08-04: 5º útil de ago é 07, ainda não chegou.
+      const plans = planOccurrences(stateWith(SALARIO_DIA_UTIL), "2026-08-04");
+      expect(plans.map((p) => p.draft.occurredOn)).toEqual(["2026-06-05", "2026-07-07"]);
+
+      expect(
+        planOccurrences(stateWith({ ...SALARIO_DIA_UTIL, active: false }), "2026-08-11"),
+      ).toEqual([]);
+    });
+
+    it("pula o que já está materializado", () => {
+      const junho = occurrenceOf(SALARIO_DIA_UTIL, "2026-06", "2026-06-05");
+      const plans = planOccurrences(stateWith(SALARIO_DIA_UTIL, [junho]), "2026-08-11");
+      expect(plans.map((p) => p.draft.occurredOn)).toEqual(["2026-07-07", "2026-08-07"]);
+    });
   });
 });
