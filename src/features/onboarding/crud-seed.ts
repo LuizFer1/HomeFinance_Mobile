@@ -4,7 +4,7 @@ import type { RowsByTable } from "../../domain/model/app-state";
 import type { Category, CategoryDraft } from "../../domain/model/category";
 import type { PaymentMethod, PaymentMethodDraft } from "../../domain/model/payment-method";
 import type { User, UserDraft } from "../../domain/model/user";
-import { LOCAL_USER_ID_KEY } from "../session/crud-session";
+import { LOCAL_USER_ID_KEY, type SessionMeta } from "../session/crud-session";
 
 /**
  * Os quatro padrão são cadastros comuns, não constantes: dá para renomear
@@ -47,11 +47,8 @@ const DEFAULT_CATEGORIES: readonly CategoryDraft[] = [
 
 export interface OnboardingRows {
   rows: RowsByTable;
-  /**
-   * Mesmo tipo de `putRows`: só `localUserId`, nunca `deviceId`. O primeiro
-   * uso não tem motivo para reescrever a identidade do aparelho.
-   */
-  meta: Partial<Record<typeof LOCAL_USER_ID_KEY, string>>;
+  /** Mesmo tipo de `putRows`, reaproveitado para o compilador amarrar os dois. */
+  meta: SessionMeta;
 }
 
 /** Monta o lote; não grava. Quem grava é a store, numa transação só. */

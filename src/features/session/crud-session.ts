@@ -24,6 +24,14 @@ const DEVICE_ID_KEY = "deviceId";
  */
 export const LOCAL_USER_ID_KEY = "localUserId";
 
+/**
+ * Formato de `meta` aceito por `putRows`: só `localUserId`, nunca `deviceId`.
+ * Exportado para quem monta o lote fora da sessão (ex. `buildOnboardingRows`)
+ * declarar o mesmo tipo em vez de reinventar um `Record<string, string>` que
+ * o compilador não amarraria a este contrato.
+ */
+export type SessionMeta = Partial<Record<typeof LOCAL_USER_ID_KEY, Ulid>>;
+
 export type SessionStatus = "loading" | "ready" | "error";
 
 export interface CrudSessionDeps {
@@ -69,10 +77,7 @@ export interface CrudSession {
    * `putRows` é a porta de lotes usada por primeiro uso e materialização, e
    * nenhum dos dois tem motivo para reescrever a identidade do aparelho.
    */
-  putRows: (
-    rows: RowsByTable,
-    meta?: Partial<Record<typeof LOCAL_USER_ID_KEY, Ulid>>,
-  ) => Promise<void>;
+  putRows: (rows: RowsByTable, meta?: SessionMeta) => Promise<void>;
 }
 
 function describeError(cause: unknown): string {
@@ -207,10 +212,7 @@ export function createCrudSession(deps: CrudSessionDeps): CrudSession {
     return row;
   }
 
-  async function putRows(
-    rows: RowsByTable,
-    meta: Partial<Record<typeof LOCAL_USER_ID_KEY, Ulid>> = {},
-  ): Promise<void> {
+  async function putRows(rows: RowsByTable, meta: SessionMeta = {}): Promise<void> {
     const tables = TABLE_NAMES.filter((table) => (rows[table]?.length ?? 0) > 0);
     try {
       await deps.db.transaction(
