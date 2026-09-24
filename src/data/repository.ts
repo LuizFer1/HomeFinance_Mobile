@@ -36,6 +36,28 @@ export function buildRow<T extends BaseRow>(clock: RowClock, draft: Draft<T>, id
   return { ...draft, ...base } as unknown as T;
 }
 
+const BASE_ROW_KEYS = new Set<string>(["id", "createdAt", "updatedAt", "deletedAt", "dirty"]);
+
+/**
+ * Descarta, de `changes`, as colunas de `BaseRow` e as entradas `undefined`.
+ *
+ * As colunas de `BaseRow` são controladas pelo repositório, nunca por quem
+ * chama `update` — sem isso, passar uma linha inteira como `changes` (ex.:
+ * `{ ...outraLinha, name: "X" }`) rouba `id`/`createdAt`/`deletedAt`/`dirty`
+ * de outro registro. `undefined` é descartado porque `Table.put` grava um
+ * `undefined` explícito no IndexedDB — reenviar o objeto do formulário com um
+ * campo ausente apagaria a coluna em vez de preservá-la.
+ */
+function sanitizeChanges<T extends BaseRow>(changes: Partial<Draft<T>>): Partial<Draft<T>> {
+  const record = changes as Record<string, unknown>;
+  const clean: Record<string, unknown> = {};
+  for (const [field, value] of Object.entries(record)) {
+    if (BASE_ROW_KEYS.has(field) || value === undefined) continue;
+    clean[field] = value;
+  }
+  return clean as Partial<Draft<T>>;
+}
+
 function hasChanges(current: object, changes: object): boolean {
   const record = current as Record<string, unknown>;
   return Object.entries(changes).some(([field, value]) => record[field] !== value);
@@ -60,24 +82,34 @@ export function createRepository<T extends BaseRow>(
       return row;
     },
 
-    async update(id, changes) {
-      const current = await load(id);
-      if (current.deletedAt !== null) throw new Error(`Registro ${id} foi removido`);
-      if (!hasChanges(current, changes)) return current;
+    update(id, changes) {
+      const safeChanges = sanitizeChanges<T>(changes);
+      // `load` + `put` precisam do isolamento de uma transação: sem ela, dois
+      // `update`s concorrentes na mesma linha podem carregar o mesmo `current`
+      // antes de qualquer um gravar, e o segundo `put` apaga o primeiro (lost
+      // update). O Dexie reaproveita a transação do chamador quando já existe
+      // uma (ex.: o `mutate` da sessão), então isto não aninha transação à toa.
+      return table.db.transaction("rw", table, async () => {
+        const current = await load(id);
+        if (current.deletedAt !== null) throw new Error(`Registro ${id} foi removido`);
+        if (!hasChanges(current, safeChanges)) return current;
 
-      const next: T = { ...current, ...changes, updatedAt: clock.stamp().hlc, dirty: 1 };
-      await table.put(next);
-      return next;
+        const next: T = { ...current, ...safeChanges, updatedAt: clock.stamp().hlc, dirty: 1 };
+        await table.put(next);
+        return next;
+      });
     },
 
-    async remove(id) {
-      const current = await load(id);
-      if (current.deletedAt !== null) return current;
+    remove(id) {
+      return table.db.transaction("rw", table, async () => {
+        const current = await load(id);
+        if (current.deletedAt !== null) return current;
 
-      const { hlc } = clock.stamp();
-      const next: T = { ...current, deletedAt: hlc, updatedAt: hlc, dirty: 1 };
-      await table.put(next);
-      return next;
+        const { hlc } = clock.stamp();
+        const next: T = { ...current, deletedAt: hlc, updatedAt: hlc, dirty: 1 };
+        await table.put(next);
+        return next;
+      });
     },
   };
 }

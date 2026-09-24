@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { compareHlc } from "../domain/clock/hlc";
 import { createRowClock, type RowClock } from "../domain/clock/row-clock";
 import type { Category } from "../domain/model/category";
@@ -24,6 +24,7 @@ beforeEach(() => {
 });
 
 afterEach(async () => {
+  vi.restoreAllMocks();
   await db.delete();
 });
 
@@ -71,6 +72,30 @@ describe("createRepository", () => {
     await expect(repo.update(created.id, { name: "x" })).rejects.toThrow();
   });
 
+  it("update ignora colunas de BaseRow no changes (I1, cenário 1)", async () => {
+    const a = await repo.create(MERCADO);
+    const b = await repo.create({ ...MERCADO, name: "Farmácia" });
+
+    // `changes` inclui a linha B inteira (id, createdAt, updatedAt, deletedAt,
+    // dirty de B) — nenhuma dessas colunas pode vazar para a linha A.
+    const updated = await repo.update(a.id, { ...b, name: "X" });
+
+    expect(updated.id).toBe(a.id);
+    expect(updated.createdAt).toBe(a.createdAt);
+    expect(updated.name).toBe("X");
+    expect(await db.categories.get(b.id)).toEqual(b);
+  });
+
+  it("update descarta entradas undefined no changes (I1, cenário 2)", async () => {
+    const created = await repo.create({ ...MERCADO, name: "Original" });
+
+    const updated = await repo.update(created.id, { name: undefined, color: "red" } as never);
+
+    expect(updated.name).toBe("Original");
+    expect(updated.color).toBe("red");
+    expect(await db.categories.get(created.id)).toEqual(updated);
+  });
+
   it("remove marca deletedAt e mantém a linha", async () => {
     const created = await repo.create(MERCADO);
     const removed = await repo.remove(created.id);
@@ -78,6 +103,33 @@ describe("createRepository", () => {
     expect(removed.deletedAt).toBe(removed.updatedAt);
     expect(removed.dirty).toBe(1);
     expect(await db.categories.get(created.id)).toEqual(removed);
+  });
+
+  it("remove é idempotente", async () => {
+    const created = await repo.create(MERCADO);
+    const first = await repo.remove(created.id);
+    const second = await repo.remove(created.id);
+    expect(second).toEqual(first);
+  });
+
+  it("remove de id inexistente rejeita", async () => {
+    await expect(repo.remove("NAO-EXISTE")).rejects.toThrow();
+  });
+
+  it("updates concorrentes na mesma linha não se perdem (I3)", async () => {
+    const created = await repo.create(MERCADO);
+
+    const [a, b] = await Promise.all([
+      repo.update(created.id, { name: "Novo" }),
+      repo.update(created.id, { color: "red" }),
+    ]);
+
+    const final = await db.categories.get(created.id);
+    expect(final?.name).toBe("Novo");
+    expect(final?.color).toBe("red");
+    // As duas resoluções apontam para a mesma linha final gravada.
+    expect(a.id).toBe(created.id);
+    expect(b.id).toBe(created.id);
   });
 
   it("listAll devolve vivas e apagadas", async () => {
