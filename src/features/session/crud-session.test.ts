@@ -16,6 +16,7 @@ beforeEach(() => {
 });
 
 afterEach(async () => {
+  vi.restoreAllMocks();
   await db.delete();
 });
 
@@ -62,6 +63,32 @@ describe("createCrudSession", () => {
     );
     expect(session.state.value.categories).toEqual({});
     expect(session.error.value).toBe("quota exceeded");
+  });
+
+  it("mutate é atômico: op que grava e depois lança não deixa rastro (I2)", async () => {
+    const session = createCrudSession(testSessionDeps(db));
+    await session.init();
+
+    await expect(
+      session.mutate("categories", async (repo) => {
+        await repo.create(MERCADO);
+        throw new Error("falha depois de gravar");
+      }),
+    ).rejects.toThrow("falha depois de gravar");
+
+    expect(await db.categories.count()).toBe(0);
+    expect(session.state.value.categories).toEqual({});
+    expect(session.error.value).toBe("falha depois de gravar");
+  });
+
+  it("mutate preenche error se clock() lançar (M4)", async () => {
+    const session = createCrudSession(testSessionDeps(db));
+    // Sem `init()`: `clock()` lança "Sessão não inicializada".
+
+    await expect(session.mutate("categories", (repo) => repo.create(MERCADO))).rejects.toThrow(
+      "Sessão não inicializada",
+    );
+    expect(session.error.value).toBe("Sessão não inicializada");
   });
 
   it("putRows grava tudo numa transação e publica localUserId", async () => {

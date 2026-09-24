@@ -2,7 +2,7 @@ import { batch, type Signal, signal } from "@preact/signals";
 import type { Table } from "dexie";
 import type { CrudDb } from "../../data/crud-db";
 import { createRepository, type Repository } from "../../data/repository";
-import { compareHlc } from "../../domain/clock/hlc";
+import { compareHlc, parseHlc } from "../../domain/clock/hlc";
 import { createRowClock, type RowClock } from "../../domain/clock/row-clock";
 import { createUlidFactory, type RandomChunk, type Ulid } from "../../domain/ids/ulid";
 import {
@@ -45,13 +45,28 @@ export interface CrudSession {
   init: () => Promise<void>;
   /** Lança se chamado antes de `init` concluir. */
   clock: () => RowClock;
-  /** Uma escrita numa tabela. Falha preenche `error` **e relança**. */
+  /**
+   * Uma escrita atômica numa tabela: `op` deve fazer **uma única** chamada ao
+   * repositório (a linha que ela devolve é a única publicada no `state`). Se
+   * `op` gravar mais de uma vez, só a devolvida entra no estado em memória —
+   * mesmo que a transação grave as duas no banco. Falha (incluindo `clock()`
+   * chamado antes do `init` concluir) preenche `error` **e relança**; nada
+   * fica gravado, porque `op` roda dentro da transação da tabela.
+   */
   mutate: <K extends TableName>(
     table: K,
     op: (repo: Repository<RowOf<K>>) => Promise<RowOf<K>>,
   ) => Promise<RowOf<K>>;
-  /** Lote atômico de linhas prontas (`buildRow`) mais chaves de `meta`. */
-  putRows: (rows: RowsByTable, meta?: Record<string, string>) => Promise<void>;
+  /**
+   * Lote atômico de linhas prontas (`buildRow`) mais, opcionalmente,
+   * `localUserId`. Restrito a essa única chave — nunca `deviceId` — porque
+   * `putRows` é a porta de lotes usada por primeiro uso e materialização, e
+   * nenhum dos dois tem motivo para reescrever a identidade do aparelho.
+   */
+  putRows: (
+    rows: RowsByTable,
+    meta?: Partial<Record<typeof LOCAL_USER_ID_KEY, Ulid>>,
+  ) => Promise<void>;
 }
 
 function describeError(cause: unknown): string {
@@ -62,13 +77,23 @@ function toRecord<T extends BaseRow>(rows: readonly T[]): Record<Ulid, T> {
   return Object.fromEntries(rows.map((row) => [row.id, row]));
 }
 
-/** Semente do relógio: o maior HLC já gravado, para ele não regredir. */
+/**
+ * Semente do relógio: o maior HLC já gravado, para ele não regredir.
+ *
+ * `parseHlc` descarta qualquer valor que não seja um HLC bem formado — uma
+ * coluna corrompida ou de uma versão futura do schema não pode virar semente,
+ * porque `compareHlc` é comparação de string pura e um valor fora do formato
+ * de largura fixa compararia como maior ou menor sem relação com o instante
+ * real.
+ */
 function latestHlc(state: AppState): string | null {
   let max: string | null = null;
   for (const table of TABLE_NAMES) {
-    for (const row of Object.values(state[table]) as BaseRow[]) {
+    for (const row of Object.values(state[table])) {
       for (const hlc of [row.updatedAt, row.deletedAt]) {
-        if (hlc !== null && (max === null || compareHlc(hlc, max) > 0)) max = hlc;
+        if (hlc !== null && parseHlc(hlc) !== null && (max === null || compareHlc(hlc, max) > 0)) {
+          max = hlc;
+        }
       }
     }
   }
@@ -154,10 +179,17 @@ export function createCrudSession(deps: CrudSessionDeps): CrudSession {
     table: K,
     op: (repo: Repository<RowOf<K>>) => Promise<RowOf<K>>,
   ): Promise<RowOf<K>> {
-    const repo = createRepository(tableOf(table), clock());
     let row: RowOf<K>;
     try {
-      row = await op(repo);
+      // `clock()` entra no try: chamar `mutate` antes do `init` concluir é um
+      // erro de uso, mas ainda precisa preencher `error` como qualquer outra
+      // falha de escrita — quem só observa o signal não pode perder o motivo.
+      const table$ = tableOf(table);
+      const repo = createRepository(table$, clock());
+      // A transação torna `op` atômico: se ela gravar e depois lançar, o
+      // Dexie desfaz a gravação. `repository.update`/`remove` reaproveitam
+      // esta mesma transação em vez de abrir uma própria.
+      row = await table$.db.transaction("rw", table$, () => op(repo));
     } catch (cause) {
       error.value = describeError(cause);
       throw cause;
@@ -169,7 +201,10 @@ export function createCrudSession(deps: CrudSessionDeps): CrudSession {
     return row;
   }
 
-  async function putRows(rows: RowsByTable, meta: Record<string, string> = {}): Promise<void> {
+  async function putRows(
+    rows: RowsByTable,
+    meta: Partial<Record<typeof LOCAL_USER_ID_KEY, Ulid>> = {},
+  ): Promise<void> {
     const tables = TABLE_NAMES.filter((table) => (rows[table]?.length ?? 0) > 0);
     try {
       await deps.db.transaction(
