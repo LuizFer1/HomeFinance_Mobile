@@ -6,6 +6,12 @@ import { defineConfig } from "vite";
 import { VitePWA } from "vite-plugin-pwa";
 
 export default defineConfig({
+  // Quick tunnel (`cloudflared`): Host = *.trycloudflare.com. O Vite bloqueia
+  // por padrao. Prefixo `.` cobre qualquer subdominio do trycloudflare.
+  // Config so aplica no boot — reinicie o `npm run dev` apos mudar.
+  server: {
+    allowedHosts: [".trycloudflare.com"],
+  },
   plugins: [
     preact(),
     tailwindcss(),
