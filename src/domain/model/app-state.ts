@@ -22,18 +22,33 @@ export type AppState = { [K in TableName]: Record<Ulid, RowMap[K]> };
 
 export type RowsByTable = { [K in TableName]?: RowMap[K][] };
 
-export const TABLE_NAMES: readonly TableName[] = [
-  "users",
-  "categories",
-  "paymentMethods",
-  "transactions",
-  "recurrences",
-];
-
-export const EMPTY_APP_STATE: AppState = {
-  users: {},
-  categories: {},
-  paymentMethods: {},
-  transactions: {},
-  recurrences: {},
+/**
+ * `Record<TableName, true>`, e não um array literal, porque um array não é
+ * checado pelo compilador contra `RowMap`: uma tabela nova em `RowMap` sem
+ * entrada aqui compilaria assim mesmo, e ficaria de fora do boot, do `mutate`
+ * e do `putRows` em silêncio. Mesmo padrão de `ENTITIES` em
+ * `domain/events/validate.ts`.
+ */
+const TABLES: Record<TableName, true> = {
+  users: true,
+  categories: true,
+  paymentMethods: true,
+  transactions: true,
+  recurrences: true,
 };
+
+export const TABLE_NAMES: readonly TableName[] = Object.keys(TABLES) as TableName[];
+
+/**
+ * Estado vazio compartilhado por toda sessão nova. Congelado (um nível abaixo
+ * inclusive) porque é uma constante do módulo: sem o freeze, uma mutação
+ * direta por engano em um bucket vazaria para toda sessão que ainda não
+ * gravou nada naquela tabela.
+ */
+export const EMPTY_APP_STATE: AppState = Object.freeze({
+  users: Object.freeze({}),
+  categories: Object.freeze({}),
+  paymentMethods: Object.freeze({}),
+  transactions: Object.freeze({}),
+  recurrences: Object.freeze({}),
+}) as AppState;
