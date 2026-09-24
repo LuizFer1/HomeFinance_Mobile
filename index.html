@@ -1,58 +1,235 @@
 <!doctype html>
-<html lang="pt-BR">
+<html lang="en" data-platform="android">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-    <meta name="color-scheme" content="light dark" />
-    <meta name="theme-color" media="(prefers-color-scheme: light)" content="#f4f5fa" />
-    <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#161826" />
-    <meta name="mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-    <meta name="apple-mobile-web-app-title" content="HomeFinance" />
-    <!--
-      Apple: not_maskable (fundo opaco). Favicon: maskable transparente por
-      tema — traço preto no claro, traço claro no escuro. sizes = canvas real
-      (192x204), nao o 192x192 ideal de PWA; reexportar quadrado e atualizar.
-    -->
+    <meta name="color-scheme" content="dark" />
+    <meta name="theme-color" content="#161826" />
+    <title>HomeFinance: personal finance with no account and no spam</title>
+    <meta
+      name="description"
+      content="A personal finance app that works offline and keeps every number on your phone. No account, no email, no spam."
+    />
+    <meta property="og:title" content="HomeFinance" />
+    <meta
+      property="og:description"
+      content="Your money. Your phone. Nobody's business. A finance app with no account, no email and no spam."
+    />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://luizfer1.github.io/HomeFinance_Mobile/" />
     <link rel="apple-touch-icon" href="/img/icons/icon_light_not_maskable_192.png" />
-    <link
-      rel="icon"
-      type="image/png"
-      sizes="192x204"
-      href="/img/icons/icon_light_maskable_192.png"
-      media="(prefers-color-scheme: light)"
-    />
-    <link
-      rel="icon"
-      type="image/png"
-      sizes="192x204"
-      href="/img/icons/icon_dark_maskable_192.png"
-      media="(prefers-color-scheme: dark)"
-    />
-    <link
-      rel="icon"
-      type="image/png"
-      sizes="192x204"
-      href="/img/icons/icon_light_maskable_192.png"
-    />
-    <title>HomeFinance</title>
-    <script>
-      // Aplica o tema antes do primeiro paint. Ler isto so no JS do app daria
-      // um quadro com o tema errado — uma tela branca piscando em quem
-      // escolheu escuro. A chave e o prefixo estao repetidos de
-      // src/features/theme/theme.ts porque um script pre-paint nao pode
-      // importar modulo; theme.test.ts falha se os dois divergirem.
-      try {
-        const pref = localStorage.getItem("hf:theme");
-        if (pref === "light" || pref === "dark") {
-          document.documentElement.setAttribute("data-theme", `hf-${pref}`);
-        }
-      } catch {}
-    </script>
+    <link rel="icon" type="image/png" sizes="192x204" href="/img/icons/icon_dark_maskable_192.png" />
+    <script type="module" src="/src/landing/main.ts"></script>
   </head>
   <body>
-    <div id="app"></div>
-    <script type="module" src="/src/main.tsx"></script>
+    <header class="top wrap">
+      <a class="brand" href="./">
+        <span class="mark" aria-hidden="true">
+          <svg aria-hidden="true" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round" stroke-linecap="round">
+            <path d="M3.5 10.2 12 2.8l8.5 7.4V21h-17Z" />
+            <path d="M6.8 11.6c1.9-.9 3.4.9 5.2 0s3.3-.9 5.2 0v5.2c-1.9-.9-3.4.9-5.2 0s-3.3-.9-5.2 0Z" stroke-width="1.4" />
+            <circle cx="12" cy="14.2" r="1.2" stroke-width="1.3" />
+            <path d="M8.9 13v2.4M15.1 13v2.4" stroke-width="1.3" />
+          </svg>
+        </span>
+        HomeFinance
+      </a>
+      <fieldset class="lang">
+        <legend class="sr-only">Language / Idioma</legend>
+        <button type="button" data-lang="en" aria-pressed="true">EN</button>
+        <button type="button" data-lang="pt" aria-pressed="false">PT</button>
+      </fieldset>
+    </header>
+
+    <main>
+      <section class="hero wrap">
+        <p class="eyebrow" data-i18n="hero.eyebrow">No account · No email · No spam</p>
+        <h1>
+          <span data-i18n="hero.t1">Your money.</span>
+          <span data-i18n="hero.t2">Your phone.</span>
+          <span><s data-i18n="hero.t3">Your email</s> <span data-i18n="hero.t4">Nobody's business.</span></span>
+        </h1>
+        <p class="lead" data-i18n="hero.lead">
+          A personal finance app that works offline and keeps every number on your device. Nothing
+          to sign up for.
+        </p>
+
+        <div class="only-mobile">
+          <button type="button" class="btn primary" data-install data-i18n="cta.install">Install app</button>
+          <a class="btn primary" href="app/" data-open-app data-i18n="cta.open">Open app</a>
+          <a class="btn ghost" href="app/" data-browser data-i18n="cta.browser">Open in browser</a>
+          <p class="meta" data-i18n="hero.meta">Free · Android and iPhone</p>
+        </div>
+
+        <div class="only-desktop desk">
+          <p data-i18n="desk.lead">
+            HomeFinance is made for your phone. Scan the code with your camera to open this page
+            there and install it.
+          </p>
+          <img
+            class="qr"
+            src="/img/landing-qr.svg"
+            width="180"
+            height="180"
+            alt="QR code with the address of this page"
+            data-i18n-alt="desk.qr"
+          />
+          <p class="meta">luizfer1.github.io/HomeFinance_Mobile</p>
+          <p class="meta" data-i18n="desk.note">Made for phones: there's nothing to install on a computer.</p>
+        </div>
+
+        <div class="preview" aria-hidden="true">
+          <p class="preview-label" data-i18n="preview.label">This month</p>
+          <p class="preview-balance income" data-i18n="preview.balance">$2,988</p>
+          <div class="preview-row">
+            <span data-i18n="preview.salary">Salary</span>
+            <span class="income" data-i18n="preview.salaryValue">+ $5,200</span>
+          </div>
+          <div class="preview-row">
+            <span data-i18n="preview.groceries">Groceries</span>
+            <span class="expense" data-i18n="preview.groceriesValue">− $412</span>
+          </div>
+          <div class="preview-row">
+            <span data-i18n="preview.rent">Rent</span>
+            <span class="expense" data-i18n="preview.rentValue">− $1,800</span>
+          </div>
+        </div>
+      </section>
+
+      <section class="wrap" aria-labelledby="story-title">
+        <h2 id="story-title" data-i18n="story.title">Why I built it</h2>
+        <figure class="story">
+          <blockquote data-i18n="story.quote">
+            I got tired of creating an account for everything and watching my inbox turn into a
+            spam dump. So I built a finance app that just… doesn't ask.
+          </blockquote>
+          <figcaption data-i18n="story.by">— the developer</figcaption>
+        </figure>
+      </section>
+
+      <section class="wrap" aria-labelledby="feat-title">
+        <h2 id="feat-title" data-i18n="feat.title">What you get</h2>
+        <ul class="features">
+          <li>
+            <span class="tile" aria-hidden="true">
+              <svg aria-hidden="true" viewBox="0 0 256 256" fill="currentColor"><path d="M168,56a8,8,0,0,1,8-8h48a8,8,0,0,1,0,16H176A8,8,0,0,1,168,56Zm58.08,37.33a103.93,103.93,0,1,1-80.76-67.89,8,8,0,0,1-2.64,15.78A88.07,88.07,0,0,0,40,128a87.62,87.62,0,0,0,22.24,58.41A79.66,79.66,0,0,1,98.3,157.66a48,48,0,1,1,59.4,0,79.66,79.66,0,0,1,36.06,28.75A88,88,0,0,0,211,98.67a8,8,0,0,1,15.09-5.34ZM128,152a32,32,0,1,0-32-32A32,32,0,0,0,128,152Zm0,64a87.57,87.57,0,0,0,53.92-18.5,64,64,0,0,0-107.84,0A87.57,87.57,0,0,0,128,216Z"/></svg>
+            </span>
+            <div>
+              <h3 data-i18n="feat.account">No account, ever</h3>
+              <p data-i18n="feat.accountText">Open it and start. No email, no password, no “verify your address”.</p>
+            </div>
+          </li>
+          <li>
+            <span class="tile" aria-hidden="true">
+              <svg aria-hidden="true" viewBox="0 0 256 256" fill="currentColor"><path d="M213.92,210.62a8,8,0,1,1-11.84,10.76l-52-57.15a60,60,0,0,0-57.41,7.24,8,8,0,1,1-9.42-12.93A75.43,75.43,0,0,1,128,144c1.28,0,2.55,0,3.82.1L104.9,114.49A108,108,0,0,0,61,135.31,8,8,0,0,1,49.73,134,8,8,0,0,1,51,122.77a124.27,124.27,0,0,1,41.71-21.66L69.37,75.4a155.43,155.43,0,0,0-40.29,24A8,8,0,0,1,18.92,87,171.87,171.87,0,0,1,58,62.86L42.08,45.38A8,8,0,1,1,53.92,34.62ZM128,192a12,12,0,1,0,12,12A12,12,0,0,0,128,192ZM237.08,87A172.3,172.3,0,0,0,106,49.4a8,8,0,1,0,2,15.87A158.33,158.33,0,0,1,128,64a156.25,156.25,0,0,1,98.92,35.37A8,8,0,0,0,237.08,87ZM195,135.31a8,8,0,0,0,11.24-1.3,8,8,0,0,0-1.3-11.24,124.25,124.25,0,0,0-51.73-24.2A8,8,0,1,0,150,114.24,108.12,108.12,0,0,1,195,135.31Z"/></svg>
+            </span>
+            <div>
+              <h3 data-i18n="feat.offline">Works offline</h3>
+              <p data-i18n="feat.offlineText">No signal at the supermarket? Doesn't matter.</p>
+            </div>
+          </li>
+          <li>
+            <span class="tile" aria-hidden="true">
+              <svg aria-hidden="true" viewBox="0 0 256 256" fill="currentColor"><path d="M208,80H176V56a48,48,0,0,0-96,0V80H48A16,16,0,0,0,32,96V208a16,16,0,0,0,16,16H208a16,16,0,0,0,16-16V96A16,16,0,0,0,208,80ZM96,56a32,32,0,0,1,64,0V80H96ZM208,208H48V96H208V208Z"/></svg>
+            </span>
+            <div>
+              <h3 data-i18n="feat.data">Your data stays here</h3>
+              <p data-i18n="feat.dataText">No server, no tracking, no analytics.</p>
+            </div>
+          </li>
+          <li>
+            <span class="tile" aria-hidden="true">
+              <svg aria-hidden="true" viewBox="0 0 256 256" fill="currentColor"><path d="M215.79,118.17a8,8,0,0,0-5-5.66L153.18,90.9l14.66-73.33a8,8,0,0,0-13.69-7l-112,120a8,8,0,0,0,3,13l57.63,21.61L88.16,238.43a8,8,0,0,0,13.69,7l112-120A8,8,0,0,0,215.79,118.17ZM109.37,214l10.47-52.38a8,8,0,0,0-5-9.06L62,132.71l84.62-90.66L136.16,94.43a8,8,0,0,0,5,9.06l52.8,19.8Z"/></svg>
+            </span>
+            <div>
+              <h3 data-i18n="feat.light">Tiny and fast</h3>
+              <p data-i18n="feat.lightText">Installs in seconds and opens instantly.</p>
+            </div>
+          </li>
+        </ul>
+      </section>
+
+      <section class="wrap only-mobile" id="how" aria-labelledby="how-title">
+        <h2 id="how-title" data-i18n="steps.title">Install in 10 seconds</h2>
+        <div class="tabs" role="tablist">
+          <button type="button" role="tab" id="tab-android" aria-controls="steps-android" aria-selected="true" data-tab="android">Android</button>
+          <button type="button" role="tab" id="tab-ios" aria-controls="steps-ios" aria-selected="false" data-tab="ios">iPhone</button>
+        </div>
+        <ol class="steps" id="steps-android" role="tabpanel" aria-labelledby="tab-android">
+          <li data-i18n="steps.android1">Open this page in Chrome</li>
+          <li data-i18n="steps.android2">Tap the ⋮ menu</li>
+          <li data-i18n="steps.android3">Tap “Install app” (or “Add to Home screen”)</li>
+        </ol>
+        <ol class="steps" id="steps-ios" role="tabpanel" aria-labelledby="tab-ios" hidden>
+          <li data-i18n="steps.ios1">Open this page in Safari</li>
+          <li data-i18n="steps.ios2">Tap Share</li>
+          <li data-i18n="steps.ios3">Tap “Add to Home Screen”</li>
+        </ol>
+      </section>
+
+      <section class="wrap" aria-labelledby="faq-title">
+        <h2 id="faq-title" data-i18n="faq.title">Questions</h2>
+        <div class="faq">
+          <details>
+            <summary data-i18n="faq.freeQ">Is it really free?</summary>
+            <p data-i18n="faq.freeA">
+              Yes. No ads, no paid plan, no selling your data. If you want to help, there's an
+              optional coffee.
+            </p>
+          </details>
+          <details>
+            <summary data-i18n="faq.lostQ">What if I lose my phone?</summary>
+            <p data-i18n="faq.lostA">
+              Your data only exists on your phone, so it goes with it. Backup and export are on the
+              way.
+            </p>
+          </details>
+          <details>
+            <summary data-i18n="faq.storeQ">Why isn't it in the app stores?</summary>
+            <p data-i18n="faq.storeA">
+              It's a web app (PWA): it installs straight from the browser, needs no store account
+              and updates itself.
+            </p>
+          </details>
+          <details>
+            <summary data-i18n="faq.twoQ">Can I use it on two phones?</summary>
+            <p data-i18n="faq.twoA">
+              For now each phone keeps its own data. Optional sync through your own computer, never
+              a company's server, is on the way.
+            </p>
+          </details>
+        </div>
+      </section>
+    </main>
+
+    <footer class="wrap foot">
+      <div class="only-mobile">
+        <button type="button" class="btn primary" data-install data-i18n="cta.install">Install app</button>
+        <a class="btn primary" href="app/" data-open-app data-i18n="cta.open">Open app</a>
+      </div>
+      <p data-i18n="foot.made">Made by one tired inbox owner</p>
+      <p class="links">
+        <a href="https://buymeacoffee.com/luizfer1" target="_blank" rel="noopener" data-i18n="foot.coffee">Buy me a coffee</a>
+        <span aria-hidden="true">·</span>
+        <a href="https://github.com/LuizFer1/HomeFinance_Mobile" target="_blank" rel="noopener" data-i18n="foot.source">Source on GitHub</a>
+      </p>
+    </footer>
+
+    <dialog class="sheet" id="donate" aria-labelledby="sheet-title">
+      <button type="button" class="close" data-close aria-label="Close" data-i18n-label="sheet.close">
+        <svg viewBox="0 0 256 256" width="20" height="20" fill="currentColor" aria-hidden="true"><path d="M205.66,194.34a8,8,0,0,1-11.32,11.32L128,139.31,61.66,205.66a8,8,0,0,1-11.32-11.32L116.69,128,50.34,61.66A8,8,0,0,1,61.66,50.34L128,116.69l66.34-66.35a8,8,0,0,1,11.32,11.32L139.31,128Z"/></svg>
+      </button>
+      <span class="cup" aria-hidden="true">
+        <svg aria-hidden="true" viewBox="0 0 256 256" width="32" height="32" fill="currentColor"><path d="M80,56V24a8,8,0,0,1,16,0V56a8,8,0,0,1-16,0Zm40,8a8,8,0,0,0,8-8V24a8,8,0,0,0-16,0V56A8,8,0,0,0,120,64Zm32,0a8,8,0,0,0,8-8V24a8,8,0,0,0-16,0V56A8,8,0,0,0,152,64Zm96,56v8a40,40,0,0,1-37.51,39.91,96.59,96.59,0,0,1-27,40.09H208a8,8,0,0,1,0,16H32a8,8,0,0,1,0-16H56.54A96.3,96.3,0,0,1,24,136V88a8,8,0,0,1,8-8H208A40,40,0,0,1,248,120ZM200,96H40v40a80.27,80.27,0,0,0,45.12,72h69.76A80.27,80.27,0,0,0,200,136Zm32,24a24,24,0,0,0-16-22.62V136a95.78,95.78,0,0,1-1.2,15A24,24,0,0,0,232,128Z"/></svg>
+      </span>
+      <h2 id="sheet-title" data-i18n="sheet.title">Before you install…</h2>
+      <p data-i18n="sheet.body">
+        Like the idea of an app with no account and no spam? It's free and will stay that way. If
+        you'd like to help, a coffee keeps the project going.
+      </p>
+      <a class="btn coffee" href="https://buymeacoffee.com/luizfer1" target="_blank" rel="noopener" data-i18n="sheet.coffee">Buy me a coffee</a>
+      <button type="button" class="btn primary" data-install-now data-i18n="sheet.install">Install without donating</button>
+      <p class="note" data-i18n="sheet.note">Donating is optional. Installing never depends on it.</p>
+    </dialog>
   </body>
 </html>
