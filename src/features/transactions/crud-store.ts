@@ -13,9 +13,7 @@ export interface TransactionsStore {
 
 export function createTransactionsStore(session: CrudSession): TransactionsStore {
   return {
-    // Autoria vem da sessão, e só no create. `TransactionDraft` não tem
-    // `userId`, então `edit` não consegue trocar o autor: se a outra pessoa
-    // corrige o valor de um lançamento seu, ele continua seu.
+    // Autoria vem da sessão, só no create.
     add: (draft) =>
       session.mutate("transactions", (repo) =>
         repo.create({ ...draft, userId: session.localUserId.value }),

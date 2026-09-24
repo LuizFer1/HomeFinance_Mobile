@@ -31,6 +31,7 @@ beforeEach(async () => {
 });
 
 afterEach(async () => {
+  vi.restoreAllMocks();
   await db.delete();
 });
 
@@ -45,6 +46,7 @@ describe("createTransactionsStore (CRUD)", () => {
     session.localUserId.value = null;
     const row = await store.add(MERCADO);
     expect(row.userId).toBeNull();
+    expect((await db.transactions.get(row.id))?.userId).toBeNull();
   });
 
   it("edit troca os campos e preserva o autor", async () => {
@@ -55,6 +57,7 @@ describe("createTransactionsStore (CRUD)", () => {
 
     expect(edited.amountMinor).toBe(20_000);
     expect(edited.userId).toBe("AUTOR-1");
+    expect(await db.transactions.get(created.id)).toEqual(edited);
   });
 
   it("edit ignora userId estranho no draft e preserva o autor original", async () => {
@@ -72,24 +75,51 @@ describe("createTransactionsStore (CRUD)", () => {
     const edited = await store.edit(created.id, comAutorEstranho);
 
     expect(edited.userId).toBe("AUTOR-1");
+    expect(edited.amountMinor).toBe(999);
+    expect(await db.transactions.get(created.id)).toEqual(edited);
   });
 
   it("edit zera o cashback", async () => {
     const created = await store.add({ ...MERCADO, cashbackMinor: 300 });
     const edited = await store.edit(created.id, { ...MERCADO, cashbackMinor: null });
     expect(edited.cashbackMinor).toBeNull();
+    expect(await db.transactions.get(created.id)).toEqual(edited);
   });
 
   it("remove marca deletedAt e mantém a linha", async () => {
     const created = await store.add(MERCADO);
-    await store.remove(created.id);
+    const removed = await store.remove(created.id);
     expect(session.state.value.transactions[created.id]?.deletedAt).not.toBeNull();
     expect(await db.transactions.count()).toBe(1);
+    expect(await db.transactions.get(created.id)).toEqual(removed);
   });
 
   it("falha de escrita rejeita e não publica", async () => {
     vi.spyOn(db.transactions, "put").mockRejectedValueOnce(new Error("quota exceeded"));
     await expect(store.add(MERCADO)).rejects.toThrow("quota exceeded");
     expect(session.state.value.transactions).toEqual({});
+  });
+
+  it("edit depois de remove rejeita e não muda estado nem publica erro nulo", async () => {
+    const created = await store.add(MERCADO);
+    const removed = await store.remove(created.id);
+
+    await expect(store.edit(created.id, { ...MERCADO, amountMinor: 1 })).rejects.toThrow();
+
+    expect(session.state.value.transactions[created.id]).toEqual(removed);
+    expect(session.error.value).not.toBeNull();
+  });
+
+  it("edit com put rejeitado mantém a linha antiga em memória e no banco", async () => {
+    const created = await store.add(MERCADO);
+    vi.spyOn(db.transactions, "put").mockRejectedValueOnce(new Error("quota exceeded"));
+
+    await expect(store.edit(created.id, { ...MERCADO, amountMinor: 30_000 })).rejects.toThrow(
+      "quota exceeded",
+    );
+
+    expect(session.state.value.transactions[created.id]).toEqual(created);
+    expect(await db.transactions.get(created.id)).toEqual(created);
+    expect(session.error.value).toBe("quota exceeded");
   });
 });
