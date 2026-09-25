@@ -12,7 +12,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import QRCode from "qrcode";
 
-export const LANDING_URL = "https://luizfer1.github.io/";
+export const LANDING_URL = "https://luizfer1.github.io/homefinance/";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const out = join(root, "public", "img", "landing-qr.svg");

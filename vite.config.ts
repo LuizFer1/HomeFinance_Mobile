@@ -6,11 +6,12 @@ import tailwindcss from "@tailwindcss/vite";
 import { defineConfig } from "vite";
 import { VitePWA } from "vite-plugin-pwa";
 
-// O site e o "user site" do GitHub Pages (repositorio LuizFer1.github.io),
-// servido na raiz de https://luizfer1.github.io/. Tudo que e caminho absoluto
-// (manifest, SW, icones) sai daqui: se o site voltar a morar num subcaminho
-// (/<repo>/), so esta constante muda.
-const BASE = "/";
+// GitHub Pages de projeto serve o site em /<repo>/ — aqui o repositorio
+// `homefinance`, em https://luizfer1.github.io/homefinance/. Tudo que e caminho
+// absoluto (manifest, SW, icones) sai daqui; um "/" solto apontaria para a raiz
+// de luizfer1.github.io, que e outro site. Renomear o repositorio muda o
+// caminho: esta constante tem que acompanhar.
+const BASE = "/homefinance/";
 
 export default defineConfig({
   base: BASE,
