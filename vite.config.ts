@@ -6,10 +6,11 @@ import tailwindcss from "@tailwindcss/vite";
 import { defineConfig } from "vite";
 import { VitePWA } from "vite-plugin-pwa";
 
-// GitHub Pages sem dominio proprio serve o site em /<repo>/. Tudo que e caminho
-// absoluto (manifest, SW, icones) sai daqui; um "/" solto aponta para a raiz de
-// luizfer1.github.io, que e outro site.
-const BASE = "/HomeFinance_Mobile/";
+// O site e o "user site" do GitHub Pages (repositorio LuizFer1.github.io),
+// servido na raiz de https://luizfer1.github.io/. Tudo que e caminho absoluto
+// (manifest, SW, icones) sai daqui: se o site voltar a morar num subcaminho
+// (/<repo>/), so esta constante muda.
+const BASE = "/";
 
 export default defineConfig({
   base: BASE,

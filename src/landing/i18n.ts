@@ -26,7 +26,7 @@ const en = {
   "qr.title": "Point your camera",
   "qr.text":
     "Open it on your phone and tap “Add to Home Screen”. There's nothing to install on a computer.",
-  "qr.alt": "QR code for luizfer1.github.io/HomeFinance_Mobile",
+  "qr.alt": "QR code for luizfer1.github.io",
 
   "demo.live": "Live demo",
   "demo.path": "Home → New entry → Saved",
@@ -160,7 +160,7 @@ const pt: Record<MessageKey, string> = {
   "qr.title": "Aponte a câmera",
   "qr.text":
     "Abra no celular e toque em “Adicionar à tela inicial”. Não há o que instalar no computador.",
-  "qr.alt": "QR code para luizfer1.github.io/HomeFinance_Mobile",
+  "qr.alt": "QR code para luizfer1.github.io",
 
   "demo.live": "Demonstração ao vivo",
   "demo.path": "Início → Novo lançamento → Salvo",
