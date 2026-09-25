@@ -269,13 +269,11 @@ function animateIn(): void {
     ],
     { ...loop, duration: 3600, easing: "ease-in-out" },
   );
-  document
-    .querySelector("[data-pulse]")
-    ?.animate([{ opacity: 1 }, { opacity: 0.25 }], {
-      ...loop,
-      duration: 900,
-      easing: "ease-in-out",
-    });
+  document.querySelector("[data-pulse]")?.animate([{ opacity: 1 }, { opacity: 0.25 }], {
+    ...loop,
+    duration: 900,
+    easing: "ease-in-out",
+  });
 
   // Odometros: comecam no 9 e rolam ate o 0 quando a faixa aparece.
   const rolls = [...document.querySelectorAll<HTMLElement>("[data-roll]")];
